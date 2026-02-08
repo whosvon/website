@@ -3,7 +3,6 @@ import { products } from "../db";
 import { Product } from "@shared/api";
 
 export const getProducts: RequestHandler = (req, res) => {
-  console.log("Sending products:", products.length);
   res.json(products);
 };
 
