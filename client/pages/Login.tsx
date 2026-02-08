@@ -4,17 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Mail, ArrowLeft } from "lucide-react";
+import { Lock, ArrowLeft, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState(1);
   const [password, setPassword] = useState("");
+  const [secretCode, setSecretCode] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleNextStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password) return;
+    setStep(2);
+  };
+
+  const handleFinalLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -22,86 +29,106 @@ export default function Login() {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ password, secretCode }),
       });
 
       const data = await res.json();
 
       if (data.success) {
         localStorage.setItem("admin-token", data.token);
-        toast.success("Welcome back, Admin!");
+        toast.success("Identity verified. Access granted.");
         navigate("/admin");
       } else {
-        toast.error(data.message || "Invalid credentials");
+        toast.error("Authentication failed. Security protocol engaged.");
+        setStep(1);
+        setPassword("");
+        setSecretCode("");
       }
     } catch (error) {
-      toast.error("Something went wrong. Please try again.");
+      toast.error("System error. Security bypass blocked.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Back to Store
+        <ArrowLeft className="h-4 w-4" /> Return to Store
       </Link>
       
-      <Card className="w-full max-w-md border-none shadow-2xl">
-        <CardHeader className="space-y-2 text-center pb-8">
-          <div className="mx-auto bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
-            <Lock className="h-6 w-6 text-primary" />
+      <Card className="w-full max-w-md border-none shadow-none bg-transparent">
+        <CardHeader className="space-y-4 text-center pb-8">
+          <div className="mx-auto bg-primary/5 w-16 h-16 rounded-3xl flex items-center justify-center mb-2 rotate-3 border border-primary/10">
+            {step === 1 ? (
+              <Lock className="h-8 w-8 text-primary" />
+            ) : (
+              <ShieldCheck className="h-8 w-8 text-primary animate-pulse" />
+            )}
           </div>
-          <CardTitle className="text-3xl font-bold tracking-tight">Admin Login</CardTitle>
-          <CardDescription>Enter your credentials to manage your store.</CardDescription>
+          <CardTitle className="text-4xl font-black tracking-tighter uppercase italic">
+            {step === 1 ? "Security Phase I" : "Security Phase II"}
+          </CardTitle>
+          <CardDescription className="text-base">
+            {step === 1 
+              ? "Master level authorization required." 
+              : "Secondary authentication layer active."}
+          </CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="admin@store.com" 
-                  className="pl-10" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link to="#" className="text-xs text-primary hover:underline">Forgot password?</Link>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+
+        <CardContent>
+          {step === 1 ? (
+            <form onSubmit={handleNextStep} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="password">Primary Key</Label>
                 <Input 
                   id="password" 
                   type="password" 
                   placeholder="••••••••" 
-                  className="pl-10"
+                  className="h-14 bg-muted/50 border-none rounded-2xl text-lg px-6 focus-visible:ring-primary"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoFocus
                   required
                 />
               </div>
-            </div>
-            <div className="pt-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg border border-dashed">
-              <p>Demo Credentials:</p>
-              <p>Email: <span className="font-mono text-foreground">admin@store.com</span></p>
-              <p>Pass: <span className="font-mono text-foreground">admin123</span></p>
-            </div>
-          </CardContent>
-          <CardFooter className="pt-4">
-            <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-          </CardFooter>
-        </form>
+              <Button type="submit" className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95">
+                Verify Identity
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleFinalLogin} className="space-y-6">
+              <div className="space-y-2">
+                {/* No label for the secret box as requested */}
+                <div className="h-6" /> 
+                <Input 
+                  id="secretCode" 
+                  type="text" 
+                  autoComplete="off"
+                  placeholder="" 
+                  className="h-14 bg-muted/50 border-none rounded-2xl text-lg px-6 focus-visible:ring-primary text-center tracking-[1em]"
+                  value={secretCode}
+                  onChange={(e) => setSecretCode(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full h-14 text-lg font-bold rounded-2xl bg-foreground text-background hover:bg-foreground/90 transition-all active:scale-95" 
+                disabled={loading}
+              >
+                {loading ? "Decrypting..." : "Finalize Access"}
+              </Button>
+            </form>
+          )}
+        </CardContent>
+        
+        <CardFooter className="justify-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-medium opacity-50">
+            Encrypted End-to-End • Aether Security System
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );
