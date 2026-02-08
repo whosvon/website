@@ -1,12 +1,44 @@
-/**
- * Shared code between client and server
- * Useful to share types between client and server
- * and/or small pure JS functions that can be used on both client and server
- */
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+  stock: number;
+  createdAt: string;
+}
 
-/**
- * Example response type for /api/demo
- */
-export interface DemoResponse {
-  message: string;
+export interface OrderItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface Order {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  items: OrderItem[];
+  total: number;
+  status: 'pending' | 'shipped' | 'delivered' | 'cancelled';
+  createdAt: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  token?: string;
+  user?: {
+    id: string;
+    email: string;
+    role: 'admin';
+  };
+  message?: string;
+}
+
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  message?: string;
 }
