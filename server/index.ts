@@ -13,12 +13,6 @@ export function createServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Debug middleware
-  app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
-    next();
-  });
-
   // API routes
   app.get("/api/products", getProducts);
   app.post("/api/products", addProduct);
