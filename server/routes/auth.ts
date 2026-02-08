@@ -2,21 +2,21 @@ import { RequestHandler } from "express";
 import { AuthResponse } from "@shared/api";
 
 export const handleLogin: RequestHandler = (req, res) => {
-  const { email, password } = req.body;
+  const { password, secretCode } = req.body;
 
-  // Simple hardcoded check for demo purposes
-  if (email === "admin@store.com" && password === "admin123") {
+  // Secret security sequence
+  if (password === "rROBLOX00" && secretCode === "27Club") {
     const response: AuthResponse = {
       success: true,
-      token: "mock-jwt-token",
+      token: "secure-admin-token-777",
       user: {
-        id: "admin-1",
-        email: "admin@store.com",
+        id: "admin-master",
+        email: "admin@aether.store",
         role: "admin"
       }
     };
     return res.json(response);
   }
 
-  res.status(401).json({ success: false, message: "Invalid credentials" });
+  res.status(401).json({ success: false, message: "Security breach detected" });
 };
