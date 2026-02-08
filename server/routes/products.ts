@@ -1,6 +1,11 @@
 import { RequestHandler } from "express";
 import { products } from "../db";
 import { Product } from "@shared/api";
+
+export const getProducts: RequestHandler = (req, res) => {
+  res.json(products);
+};
+
 export const addProduct: RequestHandler = (req, res) => {
   const productData = req.body as Partial<Product>;
 
