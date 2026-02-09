@@ -27,3 +27,22 @@ export const addProduct: RequestHandler = (req, res) => {
   products.push(newProduct);
   res.status(201).json(newProduct);
 };
+
+export const updateProduct: RequestHandler = (req, res) => {
+  const { id } = req.params;
+  const productData = req.body as Partial<Product>;
+  const index = products.findIndex(p => p.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+
+  products[index] = {
+    ...products[index],
+    ...productData,
+    price: productData.price ? Number(productData.price) : products[index].price,
+    stock: productData.stock !== undefined ? Number(productData.stock) : products[index].stock,
+  };
+
+  res.json(products[index]);
+};
