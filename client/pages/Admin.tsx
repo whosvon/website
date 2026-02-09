@@ -63,16 +63,25 @@ export default function Admin() {
 
   const fetchData = async () => {
     try {
+      console.log("Fetching dashboard data...");
       const [prodRes, ordRes] = await Promise.all([
         fetch("/api/products"),
         fetch("/api/orders")
       ]);
+
+      if (!prodRes.ok || !ordRes.ok) {
+        throw new Error(`Server error: ${prodRes.status} / ${ordRes.status}`);
+      }
+
       const prodData = await prodRes.json();
       const ordData = await ordRes.json();
-      setProducts(prodData);
-      setOrders(ordData);
+
+      console.log("Data received:", { products: prodData.length, orders: ordData.length });
+      setProducts(Array.isArray(prodData) ? prodData : []);
+      setOrders(Array.isArray(ordData) ? ordData : []);
     } catch (error) {
-      toast.error("Failed to load dashboard data");
+      console.error("Dashboard fetch error:", error);
+      toast.error("Security Clearace Required. Data retrieval failed.");
     } finally {
       setLoading(false);
     }
