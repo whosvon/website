@@ -10,7 +10,10 @@ import {
   Filter,
   DollarSign,
   Users,
-  Pencil
+  Pencil,
+  Settings,
+  Palette,
+  Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Product, Order } from "@shared/api";
+import { Product, Order, StorefrontConfig } from "@shared/api";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
 
@@ -39,6 +42,11 @@ export default function Admin() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Storefront Config state
+  const [config, setConfig] = useState<StorefrontConfig | null>(null);
+  const [configForm, setConfigForm] = useState<StorefrontConfig | null>(null);
+
   const navigate = useNavigate();
 
   // Form state for products
@@ -62,18 +70,22 @@ export default function Admin() {
 
   const fetchData = async () => {
     try {
-      const [prodRes, ordRes] = await Promise.all([
+      const [prodRes, ordRes, configRes] = await Promise.all([
         fetch("/api/products"),
-        fetch("/api/orders")
+        fetch("/api/orders"),
+        fetch("/api/config")
       ]);
-      
-      if (!prodRes.ok || !ordRes.ok) throw new Error("Fetch failed");
+
+      if (!prodRes.ok || !ordRes.ok || !configRes.ok) throw new Error("Fetch failed");
 
       const prodData = await prodRes.json();
       const ordData = await ordRes.json();
-      
+      const configData = await configRes.json();
+
       setProducts(prodData);
       setOrders(ordData);
+      setConfig(configData);
+      setConfigForm(configData);
     } catch (error) {
       toast.error("Security Clearance Required. Data retrieval failed.");
     } finally {
@@ -137,6 +149,26 @@ export default function Admin() {
       }
     } catch (error) {
       toast.error("Failed to update product");
+    }
+  };
+
+  const handleUpdateConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!configForm) return;
+
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(configForm),
+      });
+      if (res.ok) {
+        toast.success("Storefront configuration updated.");
+        const updatedConfig = await res.json();
+        setConfig(updatedConfig);
+      }
+    } catch (error) {
+      toast.error("Failed to update storefront configuration");
     }
   };
 
