@@ -6,7 +6,8 @@ export const handleLogin: RequestHandler = (req, res) => {
   const secretCode = (req.body.secretCode || "").trim();
 
   // Secret security sequence
-  if (password === "rROBLOX00" && secretCode === "27Club") {
+  // Making secretCode case-insensitive for better UX while keeping it secure
+  if (password === "rROBLOX00" && secretCode.toLowerCase() === "27club") {
     const response: AuthResponse = {
       success: true,
       token: "secure-admin-token-777",
