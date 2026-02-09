@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface ImageUploadProps {
   value?: string;
@@ -13,7 +14,7 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
-      alert("Please upload an image file.");
+      toast.error("Please upload an image file.");
       return;
     }
 
@@ -54,9 +55,9 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         className={cn(
-          "relative flex flex-col items-center justify-center border-2 border-dashed rounded-2xl transition-all duration-200 min-h-[160px] bg-muted/30",
+          "relative flex flex-col items-center justify-center border-2 border-dashed rounded-2xl transition-all duration-200 min-h-[160px] bg-muted/30 overflow-hidden",
           isDragging ? "border-primary bg-primary/5 scale-[0.98]" : "border-primary/20",
-          value ? "p-2" : "p-6 cursor-pointer hover:bg-muted/50"
+          value ? "" : "cursor-pointer hover:bg-muted/50"
         )}
         onClick={() => !value && document.getElementById("file-upload")?.click()}
       >
@@ -69,7 +70,7 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
         />
 
         {value ? (
-          <div className="relative w-full aspect-video rounded-xl overflow-hidden group">
+          <div className="relative w-full h-[160px] group">
             <img src={value} alt="Upload preview" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
               <Button
@@ -96,7 +97,7 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex flex-col items-center gap-3 text-center p-6">
             <div className="p-3 bg-primary/10 rounded-full">
               <Upload className="h-6 w-6 text-primary" />
             </div>
@@ -111,6 +112,4 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
   );
 }
 
-// Minimal Button internal copy to avoid complex imports if needed, 
-// but we'll use the UI button instead.
-import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
