@@ -35,10 +35,10 @@ import { Product, Order } from "@shared/api";
 import { toast } from "sonner";
 
 export default function Admin() {
-  console.log("Admin page rendering, loading:", loading);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  console.log("Admin page rendering, loading:", loading);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const navigate = useNavigate();
 
