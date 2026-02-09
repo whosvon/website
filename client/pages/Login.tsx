@@ -101,12 +101,12 @@ export default function Login() {
               <div className="space-y-2">
                 {/* No label for the secret box as requested */}
                 <div className="h-6" /> 
-                <Input 
-                  id="secretCode" 
-                  type="text" 
+                <Input
+                  id="secretCode"
+                  type="text"
                   autoComplete="off"
-                  placeholder="" 
-                  className="h-14 bg-muted/50 border-none rounded-2xl text-lg px-6 focus-visible:ring-primary text-center tracking-[1em]"
+                  placeholder=""
+                  className="h-14 bg-muted/50 border-none rounded-2xl text-lg px-6 focus-visible:ring-primary text-center"
                   value={secretCode}
                   onChange={(e) => setSecretCode(e.target.value)}
                   autoFocus
