@@ -38,7 +38,6 @@ export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  console.log("Admin page rendering, loading:", loading);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -68,20 +67,20 @@ export default function Admin() {
         fetch("/api/products"),
         fetch("/api/orders")
       ]);
-
+      
       if (!prodRes.ok || !ordRes.ok) {
         throw new Error(`Server error: ${prodRes.status} / ${ordRes.status}`);
       }
 
       const prodData = await prodRes.json();
       const ordData = await ordRes.json();
-
+      
       console.log("Data received:", { products: prodData.length, orders: ordData.length });
       setProducts(Array.isArray(prodData) ? prodData : []);
       setOrders(Array.isArray(ordData) ? ordData : []);
     } catch (error) {
       console.error("Dashboard fetch error:", error);
-      toast.error("Security Clearace Required. Data retrieval failed.");
+      toast.error("Security Clearance Required. Data retrieval failed.");
     } finally {
       setLoading(false);
     }
@@ -124,19 +123,17 @@ export default function Admin() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4">
         <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
-        <h2 className="text-xl font-bold">Initializing Dashboard...</h2>
-        <p className="text-muted-foreground mt-2">Checking security protocols and fetching data.</p>
-        <Button variant="ghost" className="mt-8" onClick={() => navigate("/login")}>Back to Login</Button>
+        <h2 className="text-xl font-bold uppercase italic tracking-tighter">Initializing System...</h2>
+        <p className="text-muted-foreground mt-2 text-sm opacity-50">Syncing encrypted data channels.</p>
+        <Button variant="ghost" className="mt-8 text-xs uppercase tracking-widest" onClick={() => navigate("/login")}>Abort Access</Button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/20 flex flex-col md:flex-row">
-      {/* DEBUG: Remove this later */}
-      <div className="absolute top-0 left-0 bg-red-500 text-white z-[100] px-2 text-xs">Admin Loaded</div>
+    <div className="min-h-screen bg-muted/20 flex flex-col md:flex-row text-foreground">
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-background border-r p-6 space-y-8">
+      <aside className="w-full md:w-64 bg-background border-r p-6 space-y-8 md:h-screen md:sticky md:top-0">
         <div>
           <h1 className="text-xl font-bold tracking-tighter flex items-center gap-2">
             <LayoutDashboard className="h-5 w-5 text-primary" />
@@ -148,7 +145,7 @@ export default function Admin() {
           <Button variant="ghost" className="w-full justify-start gap-3 bg-primary/5 text-primary font-semibold">
             <LayoutDashboard className="h-4 w-4" /> Overview
           </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground">
+          <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={() => navigate("/")}>
             <ShoppingBag className="h-4 w-4" /> Store Front
           </Button>
           <Button variant="ghost" className="w-full justify-start gap-3 text-muted-foreground" onClick={handleLogout}>
@@ -161,99 +158,99 @@ export default function Admin() {
       <main className="flex-1 p-6 md:p-10 space-y-8 overflow-y-auto">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-            <p className="text-muted-foreground">Manage your products and track customer orders.</p>
+            <h2 className="text-3xl font-black tracking-tighter uppercase italic">Control Center</h2>
+            <p className="text-muted-foreground">Monitor system operations and inventory.</p>
           </div>
           
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 h-11 px-6 rounded-xl">
-                <Plus className="h-4 w-4" /> Add New Product
+              <Button className="gap-2 h-11 px-6 rounded-xl font-bold uppercase tracking-tighter">
+                <Plus className="h-4 w-4" /> Add Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] bg-background border-primary/20">
               <DialogHeader>
-                <DialogTitle>Add New Product</DialogTitle>
-                <DialogDescription>Fill in the details for the new product listing.</DialogDescription>
+                <DialogTitle className="text-2xl font-black uppercase italic">Add New Product</DialogTitle>
+                <DialogDescription>Input product specifications for the neural catalog.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddProduct} className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2 col-span-2">
                     <Label htmlFor="name">Product Name</Label>
-                    <Input id="name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} required />
+                    <Input id="name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} required className="bg-muted/30" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="price">Price ($)</Label>
-                    <Input id="price" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} required />
+                    <Input id="price" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} required className="bg-muted/30" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="stock">Stock Quantity</Label>
-                    <Input id="stock" type="number" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} required />
+                    <Label htmlFor="stock">Stock</Label>
+                    <Input id="stock" type="number" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} required className="bg-muted/30" />
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label htmlFor="category">Category</Label>
-                    <Input id="category" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
+                    <Input id="category" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="bg-muted/30" />
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label htmlFor="image">Image URL</Label>
-                    <Input id="image" value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} placeholder="https://unsplash.com/..." />
+                    <Input id="image" value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="bg-muted/30" />
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label htmlFor="desc">Description</Label>
-                    <Textarea id="desc" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+                    <Textarea id="desc" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="bg-muted/30" />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" className="w-full h-11 mt-4">Create Product</Button>
+                  <Button type="submit" className="w-full h-12 font-bold uppercase italic">Initialize Product</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
         </header>
 
-        {/* Stats Grid */}
+        {/* Info Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+          <Card className="border-none shadow-sm bg-background/50 backdrop-blur border border-primary/5">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="bg-primary/10 p-3 rounded-2xl">
                 <DollarSign className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <h3 className="text-2xl font-bold tracking-tight">$12,482</h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Revenue</p>
+                <h3 className="text-2xl font-black">$12,482</h3>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+          <Card className="border-none shadow-sm bg-background/50 backdrop-blur border border-primary/5">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="bg-emerald-500/10 p-3 rounded-2xl">
                 <ShoppingBag className="h-6 w-6 text-emerald-500" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-                <h3 className="text-2xl font-bold tracking-tight">{orders.length}</h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Orders</p>
+                <h3 className="text-2xl font-black">{orders.length}</h3>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+          <Card className="border-none shadow-sm bg-background/50 backdrop-blur border border-primary/5">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="bg-blue-500/10 p-3 rounded-2xl">
                 <Package className="h-6 w-6 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Products</p>
-                <h3 className="text-2xl font-bold tracking-tight">{products.length}</h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Products</p>
+                <h3 className="text-2xl font-black">{products.length}</h3>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+          <Card className="border-none shadow-sm bg-background/50 backdrop-blur border border-primary/5">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="bg-amber-500/10 p-3 rounded-2xl">
                 <Users className="h-6 w-6 text-amber-500" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Customers</p>
-                <h3 className="text-2xl font-bold tracking-tight">842</h3>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Customers</p>
+                <h3 className="text-2xl font-black">842</h3>
               </div>
             </CardContent>
           </Card>
@@ -262,47 +259,43 @@ export default function Admin() {
         {/* Dashboard Tabs */}
         <Tabs defaultValue="orders" className="space-y-6">
           <TabsList className="bg-background border p-1 rounded-xl h-12">
-            <TabsTrigger value="orders" className="rounded-lg px-6 data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Orders</TabsTrigger>
-            <TabsTrigger value="products" className="rounded-lg px-6 data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Products</TabsTrigger>
+            <TabsTrigger value="orders" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Orders</TabsTrigger>
+            <TabsTrigger value="products" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Products</TabsTrigger>
           </TabsList>
 
           <TabsContent value="orders">
-            <Card className="border-none shadow-sm">
+            <Card className="border border-primary/5 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-6">
                 <div>
-                  <CardTitle>Recent Orders</CardTitle>
-                  <CardDescription>Review and manage your incoming customer orders.</CardDescription>
+                  <CardTitle className="uppercase italic font-black">Recent Orders</CardTitle>
+                  <CardDescription>Review customer transactions.</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="h-9 rounded-lg gap-2">
-                    <Filter className="h-4 w-4" /> Filter
-                  </Button>
-                </div>
+                <Button variant="outline" size="sm" className="h-9 rounded-lg gap-2 uppercase text-[10px] font-bold tracking-widest">
+                  <Filter className="h-4 w-4" /> Filter
+                </Button>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30">
-                      <TableHead className="pl-6">Order ID</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right pr-6">Date</TableHead>
+                      <TableHead className="pl-6 uppercase text-[10px] font-bold tracking-widest">ID</TableHead>
+                      <TableHead className="uppercase text-[10px] font-bold tracking-widest">Customer</TableHead>
+                      <TableHead className="uppercase text-[10px] font-bold tracking-widest">Total</TableHead>
+                      <TableHead className="uppercase text-[10px] font-bold tracking-widest">Status</TableHead>
+                      <TableHead className="text-right pr-6 uppercase text-[10px] font-bold tracking-widest">Date</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {orders.map((order) => (
                       <TableRow key={order.id} className="hover:bg-muted/20 cursor-pointer">
-                        <TableCell className="pl-6 font-mono font-medium">{order.id}</TableCell>
+                        <TableCell className="pl-6 font-mono font-medium text-primary">{order.id}</TableCell>
                         <TableCell>
-                          <div className="font-medium">{order.customerName}</div>
-                          <div className="text-xs text-muted-foreground">{order.customerEmail}</div>
+                          <div className="font-bold">{order.customerName}</div>
+                          <div className="text-[10px] text-muted-foreground">{order.customerEmail}</div>
                         </TableCell>
-                        <TableCell>{order.items.length} items</TableCell>
-                        <TableCell className="font-semibold">${order.total}</TableCell>
+                        <TableCell className="font-black text-lg">${order.total}</TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell className="text-right pr-6 text-muted-foreground">
+                        <TableCell className="text-right pr-6 text-muted-foreground text-xs">
                           {new Date(order.createdAt).toLocaleDateString()}
                         </TableCell>
                       </TableRow>
@@ -314,26 +307,25 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="products">
-            <Card className="border-none shadow-sm">
+            <Card className="border border-primary/5 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-6">
                 <div>
-                  <CardTitle>Inventory</CardTitle>
-                  <CardDescription>Manage your product catalog and stock levels.</CardDescription>
+                  <CardTitle className="uppercase italic font-black">Inventory</CardTitle>
+                  <CardDescription>Neural catalog management.</CardDescription>
                 </div>
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search products..." className="pl-9 h-9" />
+                  <Input placeholder="Search records..." className="pl-9 h-9 bg-muted/20" />
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30">
-                      <TableHead className="pl-6">Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead className="text-right pr-6">Action</TableHead>
+                      <TableHead className="pl-6 uppercase text-[10px] font-bold tracking-widest">Item</TableHead>
+                      <TableHead className="uppercase text-[10px] font-bold tracking-widest">Price</TableHead>
+                      <TableHead className="uppercase text-[10px] font-bold tracking-widest">Stock</TableHead>
+                      <TableHead className="text-right pr-6 uppercase text-[10px] font-bold tracking-widest">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -341,21 +333,20 @@ export default function Admin() {
                       <TableRow key={product.id} className="hover:bg-muted/20">
                         <TableCell className="pl-6">
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden">
+                            <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden border">
                               <img src={product.image} alt="" className="h-full w-full object-cover" />
                             </div>
-                            <div className="font-medium">{product.name}</div>
+                            <div className="font-bold">{product.name}</div>
                           </div>
                         </TableCell>
-                        <TableCell>{product.category}</TableCell>
-                        <TableCell className="font-semibold">${product.price}</TableCell>
+                        <TableCell className="font-black text-lg">${product.price}</TableCell>
                         <TableCell>
-                          <Badge variant={product.stock < 5 ? "destructive" : "secondary"}>
-                            {product.stock} in stock
+                          <Badge variant={product.stock < 5 ? "destructive" : "secondary"} className="uppercase text-[10px]">
+                            {product.stock} Units
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right pr-6">
-                          <Button variant="ghost" size="sm">Edit</Button>
+                          <Button variant="ghost" size="sm" className="font-bold uppercase text-[10px]">Edit</Button>
                         </TableCell>
                       </TableRow>
                     ))}
