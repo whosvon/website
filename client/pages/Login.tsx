@@ -35,9 +35,10 @@ export default function Login() {
       const data = await res.json();
 
       if (data.success) {
+        console.log("Login success, setting token:", data.token);
         localStorage.setItem("admin-token", data.token);
         toast.success("Identity verified. Access granted.");
-        navigate("/admin");
+        setTimeout(() => navigate("/admin"), 100);
       } else {
         toast.error("Authentication failed. Security protocol engaged.");
         setStep(1);
