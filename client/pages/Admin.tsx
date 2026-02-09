@@ -117,6 +117,8 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col md:flex-row">
+      {/* DEBUG: Remove this later */}
+      <div className="absolute top-0 left-0 bg-red-500 text-white z-[100] px-2 text-xs">Admin Loaded</div>
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-background border-r p-6 space-y-8">
         <div>
