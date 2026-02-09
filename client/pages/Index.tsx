@@ -73,7 +73,6 @@ export default function Index() {
             <Link to="/" className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">Home</Link>
             <Link to="#" className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">Shop</Link>
             <Link to="#" className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">About</Link>
-            <Link to="/admin" className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">Admin</Link>
           </div>
 
           <div className="flex items-center gap-4">
