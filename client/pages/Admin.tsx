@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Product, Order } from "@shared/api";
 import { toast } from "sonner";
+import { ImageUpload } from "@/components/ImageUpload";
 
 export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -222,8 +223,11 @@ export default function Admin() {
                       <Input id="category" value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} className="bg-muted/30" />
                     </div>
                     <div className="space-y-2 col-span-2">
-                      <Label htmlFor="image">Image URL</Label>
-                      <Input id="image" value={productForm.image} onChange={e => setProductForm({...productForm, image: e.target.value})} className="bg-muted/30" />
+                      <Label>Product Image</Label>
+                      <ImageUpload
+                        value={productForm.image}
+                        onChange={(val) => setProductForm({...productForm, image: val})}
+                      />
                     </div>
                     <div className="space-y-2 col-span-2">
                       <Label htmlFor="desc">Description</Label>
@@ -396,8 +400,11 @@ export default function Admin() {
                 <Input id="edit-category" value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} className="bg-muted/30" />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label htmlFor="edit-image">Image URL</Label>
-                <Input id="edit-image" value={productForm.image} onChange={e => setProductForm({...productForm, image: e.target.value})} className="bg-muted/30" />
+                <Label>Product Image</Label>
+                <ImageUpload
+                  value={productForm.image}
+                  onChange={(val) => setProductForm({...productForm, image: val})}
+                />
               </div>
               <div className="space-y-2 col-span-2">
                 <Label htmlFor="edit-desc">Description</Label>
