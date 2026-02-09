@@ -8,12 +8,9 @@ import {
   LogOut, 
   Search,
   Filter,
-  CheckCircle2,
-  Clock,
-  ChevronRight,
-  TrendingUp,
   DollarSign,
-  Users
+  Users,
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,10 +36,12 @@ export default function Admin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const navigate = useNavigate();
 
-  // Form state for new product
-  const [newProduct, setNewProduct] = useState({
+  // Form state for products
+  const [productForm, setProductForm] = useState({
     name: "",
     price: "",
     description: "",
@@ -62,24 +61,19 @@ export default function Admin() {
 
   const fetchData = async () => {
     try {
-      console.log("Fetching dashboard data...");
       const [prodRes, ordRes] = await Promise.all([
         fetch("/api/products"),
         fetch("/api/orders")
       ]);
       
-      if (!prodRes.ok || !ordRes.ok) {
-        throw new Error(`Server error: ${prodRes.status} / ${ordRes.status}`);
-      }
+      if (!prodRes.ok || !ordRes.ok) throw new Error("Fetch failed");
 
       const prodData = await prodRes.json();
       const ordData = await ordRes.json();
       
-      console.log("Data received:", { products: prodData.length, orders: ordData.length });
-      setProducts(Array.isArray(prodData) ? prodData : []);
-      setOrders(Array.isArray(ordData) ? ordData : []);
+      setProducts(prodData);
+      setOrders(ordData);
     } catch (error) {
-      console.error("Dashboard fetch error:", error);
       toast.error("Security Clearance Required. Data retrieval failed.");
     } finally {
       setLoading(false);
@@ -97,18 +91,55 @@ export default function Admin() {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newProduct),
+        body: JSON.stringify(productForm),
       });
       if (res.ok) {
-        toast.success("Product added successfully!");
+        toast.success("Product initialized successfully.");
         setIsAddDialogOpen(false);
-        setNewProduct({ name: "", price: "", description: "", category: "", image: "", stock: "0" });
+        setProductForm({ name: "", price: "", description: "", category: "", image: "", stock: "0" });
         fetchData();
       }
     } catch (error) {
       toast.error("Failed to add product");
     }
   };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setProductForm({
+      name: product.name,
+      price: product.price.toString(),
+      description: product.description,
+      category: product.category,
+      image: product.image,
+      stock: product.stock.toString()
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    try {
+      const res = await fetch(`/api/products/${editingProduct.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(productForm),
+      });
+      if (res.ok) {
+        toast.success("Product records updated.");
+        setIsEditDialogOpen(false);
+        setEditingProduct(null);
+        setProductForm({ name: "", price: "", description: "", category: "", image: "", stock: "0" });
+        fetchData();
+      }
+    } catch (error) {
+      toast.error("Failed to update product");
+    }
+  };
+
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -125,7 +156,6 @@ export default function Admin() {
         <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
         <h2 className="text-xl font-bold uppercase italic tracking-tighter">Initializing System...</h2>
         <p className="text-muted-foreground mt-2 text-sm opacity-50">Syncing encrypted data channels.</p>
-        <Button variant="ghost" className="mt-8 text-xs uppercase tracking-widest" onClick={() => navigate("/login")}>Abort Access</Button>
       </div>
     );
   }
@@ -140,7 +170,6 @@ export default function Admin() {
             ADMIN PANEL
           </h1>
         </div>
-        
         <nav className="space-y-1">
           <Button variant="ghost" className="w-full justify-start gap-3 bg-primary/5 text-primary font-semibold">
             <LayoutDashboard className="h-4 w-4" /> Overview
@@ -162,50 +191,52 @@ export default function Admin() {
             <p className="text-muted-foreground">Monitor system operations and inventory.</p>
           </div>
           
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 h-11 px-6 rounded-xl font-bold uppercase tracking-tighter">
-                <Plus className="h-4 w-4" /> Add Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] bg-background border-primary/20">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-black uppercase italic">Add New Product</DialogTitle>
-                <DialogDescription>Input product specifications for the neural catalog.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddProduct} className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="name">Product Name</Label>
-                    <Input id="name" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} required className="bg-muted/30" />
+          <div className="flex gap-4">
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 h-11 px-6 rounded-xl font-bold uppercase tracking-tighter">
+                  <Plus className="h-4 w-4" /> Add Product
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px] bg-background border-primary/20">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-black uppercase italic">Add New Product</DialogTitle>
+                  <DialogDescription>Input product specifications for the neural catalog.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddProduct} className="space-y-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="name">Product Name</Label>
+                      <Input id="name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} required className="bg-muted/30" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price ($)</Label>
+                      <Input id="price" type="number" step="0.01" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} required className="bg-muted/30" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="stock">Stock</Label>
+                      <Input id="stock" type="number" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: e.target.value})} required className="bg-muted/30" />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Input id="category" value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} className="bg-muted/30" />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="image">Image URL</Label>
+                      <Input id="image" value={productForm.image} onChange={e => setProductForm({...productForm, image: e.target.value})} className="bg-muted/30" />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="desc">Description</Label>
+                      <Textarea id="desc" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="bg-muted/30" />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price ($)</Label>
-                    <Input id="price" type="number" step="0.01" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} required className="bg-muted/30" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="stock">Stock</Label>
-                    <Input id="stock" type="number" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} required className="bg-muted/30" />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Input id="category" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="bg-muted/30" />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="image">Image URL</Label>
-                    <Input id="image" value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="bg-muted/30" />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="desc">Description</Label>
-                    <Textarea id="desc" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="bg-muted/30" />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit" className="w-full h-12 font-bold uppercase italic">Initialize Product</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <DialogFooter>
+                    <Button type="submit" className="w-full h-12 font-bold uppercase italic">Initialize Product</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </header>
 
         {/* Info Cards */}
@@ -217,7 +248,7 @@ export default function Admin() {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Revenue</p>
-                <h3 className="text-2xl font-black">$12,482</h3>
+                <h3 className="text-2xl font-black">${totalRevenue.toLocaleString()}</h3>
               </div>
             </CardContent>
           </Card>
@@ -250,68 +281,25 @@ export default function Admin() {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Customers</p>
-                <h3 className="text-2xl font-black">842</h3>
+                <h3 className="text-2xl font-black">0</h3>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Dashboard Tabs */}
-        <Tabs defaultValue="orders" className="space-y-6">
+        {/* Tabs */}
+        <Tabs defaultValue="products" className="space-y-6">
           <TabsList className="bg-background border p-1 rounded-xl h-12">
-            <TabsTrigger value="orders" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Orders</TabsTrigger>
             <TabsTrigger value="products" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Products</TabsTrigger>
+            <TabsTrigger value="orders" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Orders</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="orders">
-            <Card className="border border-primary/5 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-6">
-                <div>
-                  <CardTitle className="uppercase italic font-black">Recent Orders</CardTitle>
-                  <CardDescription>Review customer transactions.</CardDescription>
-                </div>
-                <Button variant="outline" size="sm" className="h-9 rounded-lg gap-2 uppercase text-[10px] font-bold tracking-widest">
-                  <Filter className="h-4 w-4" /> Filter
-                </Button>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/30">
-                      <TableHead className="pl-6 uppercase text-[10px] font-bold tracking-widest">ID</TableHead>
-                      <TableHead className="uppercase text-[10px] font-bold tracking-widest">Customer</TableHead>
-                      <TableHead className="uppercase text-[10px] font-bold tracking-widest">Total</TableHead>
-                      <TableHead className="uppercase text-[10px] font-bold tracking-widest">Status</TableHead>
-                      <TableHead className="text-right pr-6 uppercase text-[10px] font-bold tracking-widest">Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders.map((order) => (
-                      <TableRow key={order.id} className="hover:bg-muted/20 cursor-pointer">
-                        <TableCell className="pl-6 font-mono font-medium text-primary">{order.id}</TableCell>
-                        <TableCell>
-                          <div className="font-bold">{order.customerName}</div>
-                          <div className="text-[10px] text-muted-foreground">{order.customerEmail}</div>
-                        </TableCell>
-                        <TableCell className="font-black text-lg">${order.total}</TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
-                        <TableCell className="text-right pr-6 text-muted-foreground text-xs">
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="products">
             <Card className="border border-primary/5 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-6">
                 <div>
                   <CardTitle className="uppercase italic font-black">Inventory</CardTitle>
-                  <CardDescription>Neural catalog management.</CardDescription>
+                  <CardDescription>Records of all items in stock.</CardDescription>
                 </div>
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -329,34 +317,99 @@ export default function Admin() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {products.map((product) => (
-                      <TableRow key={product.id} className="hover:bg-muted/20">
-                        <TableCell className="pl-6">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden border">
-                              <img src={product.image} alt="" className="h-full w-full object-cover" />
-                            </div>
-                            <div className="font-bold">{product.name}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-black text-lg">${product.price}</TableCell>
-                        <TableCell>
-                          <Badge variant={product.stock < 5 ? "destructive" : "secondary"} className="uppercase text-[10px]">
-                            {product.stock} Units
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right pr-6">
-                          <Button variant="ghost" size="sm" className="font-bold uppercase text-[10px]">Edit</Button>
+                    {products.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground opacity-50">
+                          No product records found.
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      products.map((product) => (
+                        <TableRow key={product.id} className="hover:bg-muted/20">
+                          <TableCell className="pl-6">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-lg bg-muted overflow-hidden border">
+                                <img src={product.image} alt="" className="h-full w-full object-cover" />
+                              </div>
+                              <div className="font-bold">{product.name}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-black text-lg">${product.price}</TableCell>
+                          <TableCell>
+                            <Badge variant={product.stock < 5 ? "destructive" : "secondary"} className="uppercase text-[10px]">
+                              {product.stock} Units
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right pr-6">
+                            <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="orders">
+            <Card className="border border-primary/5 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-6">
+                <div>
+                  <CardTitle className="uppercase italic font-black">Recent Orders</CardTitle>
+                  <CardDescription>Customer transaction history.</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0 text-center py-12 text-muted-foreground opacity-50">
+                {orders.length === 0 ? "No order data recorded." : "Order history functionality active."}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-background border-primary/20">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase italic">Edit Product</DialogTitle>
+            <DialogDescription>Modify existing product specifications.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateProduct} className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="edit-name">Product Name</Label>
+                <Input id="edit-name" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} required className="bg-muted/30" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-price">Price ($)</Label>
+                <Input id="edit-price" type="number" step="0.01" value={productForm.price} onChange={e => setProductForm({...productForm, price: e.target.value})} required className="bg-muted/30" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-stock">Stock</Label>
+                <Input id="edit-stock" type="number" value={productForm.stock} onChange={e => setProductForm({...productForm, stock: e.target.value})} required className="bg-muted/30" />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="edit-category">Category</Label>
+                <Input id="edit-category" value={productForm.category} onChange={e => setProductForm({...productForm, category: e.target.value})} className="bg-muted/30" />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="edit-image">Image URL</Label>
+                <Input id="edit-image" value={productForm.image} onChange={e => setProductForm({...productForm, image: e.target.value})} className="bg-muted/30" />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="edit-desc">Description</Label>
+                <Textarea id="edit-desc" value={productForm.description} onChange={e => setProductForm({...productForm, description: e.target.value})} className="bg-muted/30" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" className="w-full h-12 font-bold uppercase italic">Update Records</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
