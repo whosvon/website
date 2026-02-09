@@ -4,6 +4,12 @@ import { AuthResponse } from "@shared/api";
 export const handleLogin: RequestHandler = (req, res) => {
   const { password, secretCode } = req.body;
 
+  console.log("Login attempt:", {
+    passwordMatch: password === "rROBLOX00",
+    secretMatch: secretCode === "27Club",
+    receivedSecret: `[${secretCode}]`
+  });
+
   // Secret security sequence
   if (password === "rROBLOX00" && secretCode === "27Club") {
     const response: AuthResponse = {
