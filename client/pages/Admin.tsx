@@ -328,6 +328,7 @@ export default function Admin() {
           <TabsList className="bg-background border p-1 rounded-xl h-12">
             <TabsTrigger value="products" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Products</TabsTrigger>
             <TabsTrigger value="orders" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Orders</TabsTrigger>
+            <TabsTrigger value="editor" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Store Editor</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products">
@@ -402,6 +403,122 @@ export default function Admin() {
                 {orders.length === 0 ? "No order data recorded." : "Order history functionality active."}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="editor">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <Card className="border border-primary/5 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="uppercase italic font-black flex items-center gap-2">
+                      <Settings className="h-5 w-5" /> Brand Identity
+                    </CardTitle>
+                    <CardDescription>Configure your store's public appearance.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleUpdateConfig} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label>Brand Name</Label>
+                          <Input
+                            value={configForm?.brandName}
+                            onChange={e => setConfigForm(prev => prev ? {...prev, brandName: e.target.value} : null)}
+                            className="bg-muted/30 font-bold"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Brand Tagline</Label>
+                          <Input
+                            value={configForm?.brandTagline}
+                            onChange={e => setConfigForm(prev => prev ? {...prev, brandTagline: e.target.value} : null)}
+                            className="bg-muted/30 uppercase"
+                          />
+                        </div>
+                        <div className="space-y-2 col-span-2">
+                          <Label>Announcement Text</Label>
+                          <Input
+                            value={configForm?.announcementText}
+                            onChange={e => setConfigForm(prev => prev ? {...prev, announcementText: e.target.value} : null)}
+                            className="bg-muted/30"
+                            placeholder="Optional site-wide banner text"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-6 border-t space-y-6">
+                        <div className="flex items-center gap-2 text-sm font-bold uppercase italic tracking-tighter text-primary">
+                          <Palette className="h-4 w-4" /> Visual Design
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label>Hero Title</Label>
+                            <Input
+                              value={configForm?.heroTitle}
+                              onChange={e => setConfigForm(prev => prev ? {...prev, heroTitle: e.target.value} : null)}
+                              className="bg-muted/30"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Accent Color (HSL)</Label>
+                            <Input
+                              value={configForm?.accentColor}
+                              onChange={e => setConfigForm(prev => prev ? {...prev, accentColor: e.target.value} : null)}
+                              className="bg-muted/30 font-mono"
+                              placeholder="e.g. 262 83% 58%"
+                            />
+                            <p className="text-[10px] text-muted-foreground">Format: H S L (without commas)</p>
+                          </div>
+                          <div className="space-y-2 col-span-2">
+                            <Label>Hero Description</Label>
+                            <Textarea
+                              value={configForm?.heroDescription}
+                              onChange={e => setConfigForm(prev => prev ? {...prev, heroDescription: e.target.value} : null)}
+                              className="bg-muted/30 min-h-[100px]"
+                            />
+                          </div>
+                          <div className="space-y-2 col-span-2">
+                            <Label>Hero Image</Label>
+                            <ImageUpload
+                              value={configForm?.heroImage}
+                              onChange={val => setConfigForm(prev => prev ? {...prev, heroImage: val} : null)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button type="submit" className="w-full h-14 text-lg font-black uppercase italic rounded-2xl">
+                        Apply System Changes
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                <Card className="border border-primary/5 shadow-sm bg-primary/5">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                      <Megaphone className="h-4 w-4" /> Editor Pro-Tips
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-xs leading-relaxed opacity-70">
+                    <p>• <strong>Brand Name</strong> will appear in the navigation bar and footer.</p>
+                    <p>• <strong>Accent Color</strong> updates the primary theme color across the entire storefront instantly.</p>
+                    <p>• <strong>Hero Section</strong> is the first thing users see. High-quality images (1200px+) are recommended.</p>
+                    <div className="p-3 bg-background rounded-lg border border-primary/10">
+                      <p className="font-bold mb-1">Current Theme:</p>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-4 w-4 rounded-full"
+                          style={{ backgroundColor: `hsl(${config?.accentColor})` }}
+                        />
+                        <code className="text-[10px]">{config?.accentColor}</code>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </main>
