@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { getProducts, addProduct } from "./routes/products";
+import { getProducts, addProduct, updateProduct } from "./routes/products";
 import { getOrders, createOrder } from "./routes/orders";
 import { handleLogin } from "./routes/auth";
 
