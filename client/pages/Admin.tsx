@@ -112,7 +112,14 @@ export default function Admin() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading Dashboard...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4">
+        <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+        <h2 className="text-xl font-bold">Initializing Dashboard...</h2>
+        <p className="text-muted-foreground mt-2">Checking security protocols and fetching data.</p>
+        <Button variant="ghost" className="mt-8" onClick={() => navigate("/login")}>Back to Login</Button>
+      </div>
+    );
   }
 
   return (
