@@ -42,3 +42,13 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+export interface StorefrontConfig {
+  brandName: string;
+  brandTagline: string;
+  heroTitle: string;
+  heroDescription: string;
+  heroImage: string;
+  accentColor: string;
+  announcementText?: string;
+}
