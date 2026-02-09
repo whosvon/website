@@ -22,6 +22,9 @@ export function createServer() {
   app.get("/api/orders", getOrders);
   app.post("/api/orders", createOrder);
 
+  app.get("/api/config", getConfig);
+  app.post("/api/config", updateConfig);
+
   app.post("/api/login", handleLogin);
 
   app.get("/api/ping", (_req, res) => {
