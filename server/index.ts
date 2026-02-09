@@ -16,6 +16,7 @@ export function createServer() {
   // API routes
   app.get("/api/products", getProducts);
   app.post("/api/products", addProduct);
+  app.put("/api/products/:id", updateProduct);
 
   app.get("/api/orders", getOrders);
   app.post("/api/orders", createOrder);
