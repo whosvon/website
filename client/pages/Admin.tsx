@@ -32,10 +32,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Product, Order, StorefrontConfig, User, ChatMessage } from "@shared/api";
+import { Product, Order, StorefrontConfig, User, ChatMessage, StorefrontSection } from "@shared/api";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
 import { cn } from "@/lib/utils";
+import { ChevronUp, ChevronDown, Eye, EyeOff, Layout, Type, Palette as PaletteIcon, Check, Layers } from "lucide-react";
 
 export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -54,8 +55,59 @@ export default function Admin() {
   // Storefront Config state
   const [config, setConfig] = useState<StorefrontConfig | null>(null);
   const [configForm, setConfigForm] = useState<StorefrontConfig | null>(null);
+  const [activeEditorSection, setActiveEditorSection] = useState<string | null>(null);
 
   const navigate = useNavigate();
+
+  const themePresets = [
+    { name: "Cyber Purple", accent: "262 83% 58%", bg: "240 10% 3.9%", text: "0 0% 98%" },
+    { name: "Minimal White", accent: "240 5.9% 10%", bg: "0 0% 100%", text: "240 10% 3.9%" },
+    { name: "Deep Ocean", accent: "221.2 83.2% 53.3%", bg: "222.2 84% 4.9%", text: "210 40% 98%" },
+    { name: "Forest Dark", accent: "142.1 76.2% 36.3%", bg: "240 10% 3.9%", text: "0 0% 98%" },
+    { name: "Solar Orange", accent: "24.6 95% 53.1%", bg: "240 10% 3.9%", text: "0 0% 98%" },
+  ];
+
+  const applyPreset = (preset: any) => {
+    if (!configForm) return;
+    setConfigForm({
+      ...configForm,
+      accentColor: preset.accent,
+      backgroundColor: preset.bg,
+      textColor: preset.text
+    });
+    toast.success(`${preset.name} preset applied.`);
+  };
+
+  const moveSection = (id: string, direction: 'up' | 'down') => {
+    if (!configForm) return;
+    const sections = [...configForm.sections];
+    const index = sections.findIndex(s => s.id === id);
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === sections.length - 1) return;
+
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    const [moved] = sections.splice(index, 1);
+    sections.splice(newIndex, 0, moved);
+
+    setConfigForm({ ...configForm, sections });
+  };
+
+  const toggleSectionVisibility = (id: string) => {
+    if (!configForm) return;
+    const sections = configForm.sections.map(s =>
+      s.id === id ? { ...s, visible: !s.visible } : s
+    );
+    setConfigForm({ ...configForm, sections });
+  };
+
+  const updateSectionData = (id: string, data: Partial<StorefrontSection>) => {
+    if (!configForm) return;
+    const sections = configForm.sections.map(s =>
+      s.id === id ? { ...s, ...data } : s
+    );
+    setConfigForm({ ...configForm, sections });
+  };
 
   // Form state for products
   const [productForm, setProductForm] = useState({
@@ -538,14 +590,183 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="editor">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Left Column: Layout & Themes */}
+              <div className="lg:col-span-4 space-y-6">
                 <Card className="border border-primary/5 shadow-sm">
                   <CardHeader>
                     <CardTitle className="uppercase italic font-black flex items-center gap-2">
-                      <Settings className="h-5 w-5" /> Brand Identity
+                      <PaletteIcon className="h-5 w-5" /> Theme Presets
                     </CardTitle>
-                    <CardDescription>Configure your store's public appearance.</CardDescription>
+                    <CardDescription>Quickly change the store's vibe.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-1 gap-2">
+                      {themePresets.map((preset) => (
+                        <Button
+                          key={preset.name}
+                          variant="outline"
+                          className={cn(
+                            "justify-start gap-3 h-12 rounded-xl border-primary/5",
+                            configForm?.accentColor === preset.accent && "border-primary bg-primary/5"
+                          )}
+                          onClick={() => applyPreset(preset)}
+                        >
+                          <div className="w-4 h-4 rounded-full" style={{ backgroundColor: `hsl(${preset.accent})` }} />
+                          <span className="font-bold text-xs uppercase italic">{preset.name}</span>
+                          {configForm?.accentColor === preset.accent && <Check className="h-4 w-4 ml-auto text-primary" />}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-primary/5 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="uppercase italic font-black flex items-center gap-2">
+                      <Layers className="h-5 w-5" /> Page Layout
+                    </CardTitle>
+                    <CardDescription>Reorder home page sections.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-2">
+                    <div className="space-y-1">
+                      {configForm?.sections.map((section, idx) => (
+                        <div
+                          key={section.id}
+                          className={cn(
+                            "flex items-center gap-2 p-3 rounded-xl transition-all",
+                            activeEditorSection === section.id ? "bg-primary/5 border border-primary/20" : "hover:bg-muted/50"
+                          )}
+                        >
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 rounded-md hover:bg-primary/10"
+                              disabled={idx === 0}
+                              onClick={() => moveSection(section.id, 'up')}
+                            >
+                              <ChevronUp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 rounded-md hover:bg-primary/10"
+                              disabled={idx === (configForm?.sections.length || 0) - 1}
+                              onClick={() => moveSection(section.id, 'down')}
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                            </Button>
+                          </div>
+
+                          <button
+                            className="flex-1 text-left px-2"
+                            onClick={() => setActiveEditorSection(section.id)}
+                          >
+                            <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">{section.type}</div>
+                            <div className="font-bold text-sm truncate italic uppercase tracking-tighter">{section.title || "Untitled Section"}</div>
+                          </button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("h-8 w-8 rounded-full", !section.visible && "text-muted-foreground")}
+                            onClick={() => toggleSectionVisibility(section.id)}
+                          >
+                            {section.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Column: Section Editor */}
+              <div className="lg:col-span-8 space-y-6">
+                {activeEditorSection ? (
+                  <Card className="border border-primary/5 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="uppercase italic font-black flex items-center gap-2">
+                          <Settings className="h-5 w-5" /> Section Configuration
+                        </CardTitle>
+                        <CardDescription>Modify properties for the selected block.</CardDescription>
+                      </div>
+                      <Badge variant="outline" className="uppercase italic">{configForm?.sections.find(s => s.id === activeEditorSection)?.type}</Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {(() => {
+                        const s = configForm?.sections.find(sec => sec.id === activeEditorSection);
+                        if (!s) return null;
+                        return (
+                          <div className="space-y-6">
+                            {(s.type === 'hero' || s.type === 'products' || s.type === 'about' || s.type === 'newsletter' || s.type === 'banner') && (
+                              <div className="space-y-2">
+                                <Label>Section Title</Label>
+                                <Input
+                                  value={s.title || ""}
+                                  onChange={e => updateSectionData(s.id, { title: e.target.value })}
+                                  className="bg-muted/30 font-bold uppercase italic h-12"
+                                />
+                              </div>
+                            )}
+
+                            {(s.type === 'hero' || s.type === 'products' || s.type === 'newsletter') && (
+                              <div className="space-y-2">
+                                <Label>Subtitle / Description</Label>
+                                <Textarea
+                                  value={s.subtitle || ""}
+                                  onChange={e => updateSectionData(s.id, { subtitle: e.target.value })}
+                                  className="bg-muted/30 min-h-[100px]"
+                                />
+                              </div>
+                            )}
+
+                            {s.type === 'about' && (
+                              <div className="space-y-2">
+                                <Label>Body Content</Label>
+                                <Textarea
+                                  value={s.content || ""}
+                                  onChange={e => updateSectionData(s.id, { content: e.target.value })}
+                                  className="bg-muted/30 min-h-[150px]"
+                                />
+                              </div>
+                            )}
+
+                            {s.type === 'hero' && (
+                              <div className="space-y-2">
+                                <Label>Featured Image</Label>
+                                <ImageUpload
+                                  value={s.image || ""}
+                                  onChange={val => updateSectionData(s.id, { image: val })}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="border-2 border-dashed border-primary/10 bg-muted/5 flex flex-col items-center justify-center p-12 text-center space-y-4">
+                    <div className="h-16 w-16 bg-background rounded-3xl flex items-center justify-center border shadow-xl rotate-3">
+                      <Layout className="h-8 w-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black uppercase italic tracking-tighter">Layout Manager</h3>
+                      <p className="text-sm text-muted-foreground max-w-xs mx-auto">Select a section from the left sidebar to begin editing its properties and visibility.</p>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Global Brand & Colors */}
+                <Card className="border border-primary/5 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="uppercase italic font-black flex items-center gap-2">
+                      <Type className="h-5 w-5" /> Identity & Global Theme
+                    </CardTitle>
+                    <CardDescription>Core brand assets and color spectrum.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleUpdateConfig} className="space-y-6">
@@ -555,7 +776,7 @@ export default function Admin() {
                           <Input
                             value={configForm?.brandName}
                             onChange={e => setConfigForm(prev => prev ? {...prev, brandName: e.target.value} : null)}
-                            className="bg-muted/30 font-bold"
+                            className="bg-muted/30 font-black h-12 italic uppercase"
                           />
                         </div>
                         <div className="space-y-2">
@@ -563,90 +784,41 @@ export default function Admin() {
                           <Input
                             value={configForm?.brandTagline}
                             onChange={e => setConfigForm(prev => prev ? {...prev, brandTagline: e.target.value} : null)}
-                            className="bg-muted/30 uppercase"
+                            className="bg-muted/30 uppercase h-12 tracking-widest"
                           />
                         </div>
                         <div className="space-y-2 col-span-2">
-                          <Label>Announcement Text</Label>
+                          <Label>Global Announcement</Label>
                           <Input
                             value={configForm?.announcementText}
                             onChange={e => setConfigForm(prev => prev ? {...prev, announcementText: e.target.value} : null)}
-                            className="bg-muted/30"
-                            placeholder="Optional site-wide banner text"
+                            className="bg-muted/30 h-12"
+                            placeholder="Pinned to the top of every page"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Accent Color (HSL)</Label>
+                          <Input
+                            value={configForm?.accentColor}
+                            onChange={e => setConfigForm(prev => prev ? {...prev, accentColor: e.target.value} : null)}
+                            className="bg-muted/30 font-mono"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Background Color (HSL)</Label>
+                          <Input
+                            value={configForm?.backgroundColor}
+                            onChange={e => setConfigForm(prev => prev ? {...prev, backgroundColor: e.target.value} : null)}
+                            className="bg-muted/30 font-mono"
                           />
                         </div>
                       </div>
 
-                      <div className="pt-6 border-t space-y-6">
-                        <div className="flex items-center gap-2 text-sm font-bold uppercase italic tracking-tighter text-primary">
-                          <Palette className="h-4 w-4" /> Visual Design
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label>Hero Title</Label>
-                            <Input
-                              value={configForm?.heroTitle}
-                              onChange={e => setConfigForm(prev => prev ? {...prev, heroTitle: e.target.value} : null)}
-                              className="bg-muted/30"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Accent Color (HSL)</Label>
-                            <Input
-                              value={configForm?.accentColor}
-                              onChange={e => setConfigForm(prev => prev ? {...prev, accentColor: e.target.value} : null)}
-                              className="bg-muted/30 font-mono"
-                              placeholder="e.g. 262 83% 58%"
-                            />
-                            <p className="text-[10px] text-muted-foreground">Format: H S L (without commas)</p>
-                          </div>
-                          <div className="space-y-2 col-span-2">
-                            <Label>Hero Description</Label>
-                            <Textarea
-                              value={configForm?.heroDescription}
-                              onChange={e => setConfigForm(prev => prev ? {...prev, heroDescription: e.target.value} : null)}
-                              className="bg-muted/30 min-h-[100px]"
-                            />
-                          </div>
-                          <div className="space-y-2 col-span-2">
-                            <Label>Hero Image</Label>
-                            <ImageUpload
-                              value={configForm?.heroImage}
-                              onChange={val => setConfigForm(prev => prev ? {...prev, heroImage: val} : null)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <Button type="submit" className="w-full h-14 text-lg font-black uppercase italic rounded-2xl">
-                        Apply System Changes
+                      <Button type="submit" className="w-full h-16 text-lg font-black uppercase italic rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99]">
+                        Save All System Changes
                       </Button>
                     </form>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-6">
-                <Card className="border border-primary/5 shadow-sm bg-primary/5">
-                  <CardHeader>
-                    <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                      <Megaphone className="h-4 w-4" /> Editor Pro-Tips
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 text-xs leading-relaxed opacity-70">
-                    <p>• <strong>Brand Name</strong> will appear in the navigation bar and footer.</p>
-                    <p>• <strong>Accent Color</strong> updates the primary theme color across the entire storefront instantly.</p>
-                    <p>• <strong>Hero Section</strong> is the first thing users see. High-quality images (1200px+) are recommended.</p>
-                    <div className="p-3 bg-background rounded-lg border border-primary/10">
-                      <p className="font-bold mb-1">Current Theme:</p>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="h-4 w-4 rounded-full"
-                          style={{ backgroundColor: `hsl(${config?.accentColor})` }}
-                        />
-                        <code className="text-[10px]">{config?.accentColor}</code>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </div>

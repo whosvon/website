@@ -59,12 +59,22 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+export interface StorefrontSection {
+  id: string;
+  type: 'hero' | 'products' | 'about' | 'newsletter' | 'banner';
+  title?: string;
+  subtitle?: string;
+  content?: string;
+  image?: string;
+  visible: boolean;
+}
+
 export interface StorefrontConfig {
   brandName: string;
   brandTagline: string;
-  heroTitle: string;
-  heroDescription: string;
-  heroImage: string;
   accentColor: string;
+  backgroundColor: string;
+  textColor: string;
   announcementText?: string;
+  sections: StorefrontSection[];
 }
