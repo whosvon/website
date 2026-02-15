@@ -1,9 +1,13 @@
-import { Product, Order, StorefrontConfig } from "@shared/api";
+import { Product, Order, StorefrontConfig, User, ChatMessage } from "@shared/api";
 
 // Mock database - starting fresh
 export const products: Product[] = [];
 
 export const orders: Order[] = [];
+
+export const users: User[] = [];
+
+export const chatMessages: ChatMessage[] = [];
 
 export let storefrontConfig: StorefrontConfig = {
   brandName: "AETHER",

@@ -1,20 +1,24 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, ArrowRight, Star } from "lucide-react";
+import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Product, StorefrontConfig } from "@shared/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Product, StorefrontConfig, User as UserType, OrderItem } from "@shared/api";
 import { toast } from "sonner";
+import ChatWidget from "@/components/ChatWidget";
+import { useNavigate } from "react-router-dom";
 
 export default function Index() {
   const [products, setProducts] = useState<Product[]>([]);
   const [config, setConfig] = useState<StorefrontConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [cartCount, setCartCount] = useState(0);
+  const [cart, setCart] = useState<Product[]>([]);
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const navigate = useNavigate();
 
   const fetchData = async () => {
     try {
@@ -40,9 +44,60 @@ export default function Index() {
     }
   };
 
-  const addToCart = () => {
-    setCartCount(prev => prev + 1);
-    toast.success("Added to cart!");
+  const addToCart = (product: Product) => {
+    setCart(prev => [...prev, product]);
+    toast.success(`${product.name} added to registry!`);
+  };
+
+  const removeFromCart = (index: number) => {
+    setCart(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCheckout = async () => {
+    if (!currentUser) {
+      toast.error("Please login to complete your order");
+      navigate("/login");
+      return;
+    }
+
+    if (cart.length === 0) return;
+
+    setIsCheckingOut(true);
+
+    // Group items for the order
+    const items: OrderItem[] = cart.map(p => ({
+      productId: p.id,
+      name: p.name,
+      price: p.price,
+      quantity: 1
+    }));
+
+    const orderData = {
+      userId: currentUser.id,
+      customerName: currentUser.name || currentUser.email,
+      customerEmail: currentUser.email,
+      items,
+      total: cart.reduce((sum, p) => sum + p.price, 0),
+    };
+
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      });
+
+      if (res.ok) {
+        toast.success("Order secured! Track it in your account.");
+        setCart([]);
+        setIsCartOpen(false);
+        navigate("/account");
+      }
+    } catch (error) {
+      toast.error("Order transmission failed. Security bypass blocked.");
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   if (loading) {
@@ -76,19 +131,80 @@ export default function Index() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative hover:bg-primary/5">
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
-                  {cartCount}
-                </span>
-              )}
-            </Button>
-            <Link to="/login">
-              <Button variant="ghost" size="icon" className="hover:bg-primary/5">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+            <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative hover:bg-primary/5">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cart.length > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
+                      {cart.length}
+                    </span>
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] bg-background border-primary/20">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">Your Registry</DialogTitle>
+                  <DialogDescription>Items queued for acquisition.</DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                  {cart.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">Registry is empty</div>
+                  ) : (
+                    cart.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between gap-4 p-3 bg-muted/30 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-background overflow-hidden border">
+                            <img src={item.image} alt="" className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-sm uppercase italic">{item.name}</div>
+                            <div className="text-xs text-primary font-black">${item.price}</div>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => removeFromCart(idx)} className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {cart.length > 0 && (
+                  <div className="border-t pt-4 space-y-4">
+                    <div className="flex justify-between items-center font-black uppercase italic">
+                      <span>Total Acquisition Cost</span>
+                      <span className="text-xl text-primary">${cart.reduce((sum, p) => sum + p.price, 0).toFixed(2)}</span>
+                    </div>
+                    <Button onClick={handleCheckout} disabled={isCheckingOut} className="w-full h-12 font-black uppercase italic rounded-xl">
+                      {isCheckingOut ? "Processing..." : "Finalize Acquisition"}
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                <Link to="/account">
+                  <Button variant="ghost" size="sm" className="font-bold uppercase tracking-tighter">
+                    {currentUser.name?.split(' ')[0] || "Profile"}
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="icon" onClick={() => {
+                  localStorage.removeItem("user");
+                  localStorage.removeItem("token");
+                  setCurrentUser(null);
+                  toast.success("Logged out");
+                }} className="hover:text-destructive">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Link to="/login">
+                <Button variant="ghost" size="icon" className="hover:bg-primary/5">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </nav>
@@ -174,7 +290,7 @@ export default function Index() {
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-8 leading-relaxed font-medium">
                       {product.description}
                     </p>
-                    <Button onClick={addToCart} className="w-full rounded-2xl h-14 font-black uppercase italic text-base tracking-tighter" variant="outline">
+                    <Button onClick={() => addToCart(product)} className="w-full rounded-2xl h-14 font-black uppercase italic text-base tracking-tighter" variant="outline">
                       Add to Registry
                     </Button>
                   </div>
@@ -218,6 +334,7 @@ export default function Index() {
           </div>
         </div>
       </footer>
+      <ChatWidget />
     </div>
   );
 }

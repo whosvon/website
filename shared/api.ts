@@ -1,3 +1,22 @@
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  role: 'admin' | 'customer';
+  avatar?: string;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'admin' | 'customer';
+  text: string;
+  timestamp: string;
+  read: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -18,6 +37,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  userId?: string;
   customerName: string;
   customerEmail: string;
   items: OrderItem[];
@@ -29,11 +49,7 @@ export interface Order {
 export interface AuthResponse {
   success: boolean;
   token?: string;
-  user?: {
-    id: string;
-    email: string;
-    role: 'admin';
-  };
+  user?: User;
   message?: string;
 }
 

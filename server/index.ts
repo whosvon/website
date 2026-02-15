@@ -2,9 +2,10 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { getProducts, addProduct, updateProduct } from "./routes/products";
-import { getOrders, createOrder } from "./routes/orders";
-import { handleLogin } from "./routes/auth";
+import { getOrders, createOrder, getMyOrders } from "./routes/orders";
+import { handleLogin, handleRegister, handleCustomerLogin, handleGoogleLogin, getUsers } from "./routes/auth";
 import { getConfig, updateConfig } from "./routes/config";
+import { getMessages, sendMessage, markAsRead } from "./routes/chat";
 
 export function createServer() {
   const app = express();
@@ -20,12 +21,22 @@ export function createServer() {
   app.put("/api/products/:id", updateProduct);
 
   app.get("/api/orders", getOrders);
+  app.get("/api/orders/me", getMyOrders);
   app.post("/api/orders", createOrder);
 
   app.get("/api/config", getConfig);
   app.post("/api/config", updateConfig);
 
+  app.get("/api/chat", getMessages);
+  app.post("/api/chat", sendMessage);
+  app.post("/api/chat/read", markAsRead);
+
+  app.get("/api/users", getUsers);
+
   app.post("/api/login", handleLogin);
+  app.post("/api/register", handleRegister);
+  app.post("/api/login/customer", handleCustomerLogin);
+  app.post("/api/login/google", handleGoogleLogin);
 
   app.get("/api/ping", (_req, res) => {
     const ping = process.env.PING_MESSAGE ?? "ping";

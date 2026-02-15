@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  ShoppingBag, 
-  Package, 
-  Plus, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  Package,
+  Plus,
+  LogOut,
   Search,
   Filter,
   DollarSign,
@@ -13,7 +13,8 @@ import {
   Pencil,
   Settings,
   Palette,
-  Megaphone
+  Megaphone,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,17 +32,24 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Product, Order, StorefrontConfig } from "@shared/api";
+import { Product, Order, StorefrontConfig, User, ChatMessage } from "@shared/api";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
+import { cn } from "@/lib/utils";
 
 export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Chat state
+  const [activeChatUser, setActiveChatUser] = useState<string | null>(null);
+  const [chatInput, setChatInput] = useState("");
 
   // Storefront Config state
   const [config, setConfig] = useState<StorefrontConfig | null>(null);
@@ -70,26 +78,68 @@ export default function Admin() {
 
   const fetchData = async () => {
     try {
-      const [prodRes, ordRes, configRes] = await Promise.all([
+      const [prodRes, ordRes, configRes, usersRes, chatRes] = await Promise.all([
         fetch("/api/products"),
         fetch("/api/orders"),
-        fetch("/api/config")
+        fetch("/api/config"),
+        fetch("/api/users"),
+        fetch("/api/chat")
       ]);
 
-      if (!prodRes.ok || !ordRes.ok || !configRes.ok) throw new Error("Fetch failed");
+      if (!prodRes.ok || !ordRes.ok || !configRes.ok || !usersRes.ok || !chatRes.ok)
+        throw new Error("Fetch failed");
 
       const prodData = await prodRes.json();
       const ordData = await ordRes.json();
       const configData = await configRes.json();
+      const userData = await usersRes.json();
+      const chatData = await chatRes.json();
 
       setProducts(prodData);
       setOrders(ordData);
       setConfig(configData);
       setConfigForm(configData);
+      setMessages(chatData);
+      setUsers(userData.filter((u: User) => u.role === 'customer'));
+
     } catch (error) {
       toast.error("Security Clearance Required. Data retrieval failed.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeChatUser) {
+      const interval = setInterval(fetchData, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [activeChatUser]);
+
+  const handleSendAdminMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !activeChatUser) return;
+
+    const newMessage = {
+      senderId: "admin-master",
+      senderName: "Admin Support",
+      senderRole: 'admin',
+      text: `@${activeChatUser} ${chatInput}`
+    };
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newMessage),
+      });
+
+      if (res.ok) {
+        setChatInput("");
+        fetchData();
+      }
+    } catch (error) {
+      toast.error("Failed to send message");
     }
   };
 
@@ -317,7 +367,7 @@ export default function Admin() {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Customers</p>
-                <h3 className="text-2xl font-black">0</h3>
+                <h3 className="text-2xl font-black">{users.length}</h3>
               </div>
             </CardContent>
           </Card>
@@ -328,6 +378,7 @@ export default function Admin() {
           <TabsList className="bg-background border p-1 rounded-xl h-12">
             <TabsTrigger value="products" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Products</TabsTrigger>
             <TabsTrigger value="orders" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Orders</TabsTrigger>
+            <TabsTrigger value="chat" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Live Chat</TabsTrigger>
             <TabsTrigger value="editor" className="rounded-lg px-6 font-bold uppercase tracking-tighter data-[state=active]:bg-primary/5 data-[state=active]:text-primary">Store Editor</TabsTrigger>
           </TabsList>
 
@@ -402,6 +453,87 @@ export default function Admin() {
               <CardContent className="p-0 text-center py-12 text-muted-foreground opacity-50">
                 {orders.length === 0 ? "No order data recorded." : "Order history functionality active."}
               </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="chat">
+            <Card className="border border-primary/5 shadow-sm h-[600px] flex overflow-hidden">
+              {/* Chat Sidebar */}
+              <div className="w-64 border-r bg-muted/10 flex flex-col">
+                <div className="p-4 border-b font-bold uppercase text-xs tracking-widest bg-background/50">Active Conversations</div>
+                <div className="flex-1 overflow-y-auto">
+                  {users.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-muted-foreground opacity-50">No active chats</div>
+                  ) : (
+                    users.map(u => (
+                      <button
+                        key={u.id}
+                        onClick={() => setActiveChatUser(u.id)}
+                        className={cn(
+                          "w-full p-4 text-left hover:bg-primary/5 transition-colors border-b",
+                          activeChatUser === u.id && "bg-primary/5 border-l-4 border-l-primary"
+                        )}
+                      >
+                        <div className="font-bold text-sm">{u.name}</div>
+                        <div className="text-[10px] text-muted-foreground truncate font-mono">{u.id}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Chat Window */}
+              <div className="flex-1 flex flex-col bg-background">
+                {activeChatUser ? (
+                  <>
+                    <div className="p-4 border-b flex items-center justify-between bg-background/50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Users className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm">{users.find(u => u.id === activeChatUser)?.name}</div>
+                          <div className="text-[10px] text-green-500 font-bold uppercase">Connected</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                      {messages.filter(m => m.senderId === activeChatUser || m.text.includes(`@${activeChatUser}`)).map((msg) => (
+                        <div key={msg.id} className={cn(
+                          "flex flex-col max-w-[70%]",
+                          msg.senderRole === 'admin' ? "items-end ml-auto" : "items-start"
+                        )}>
+                          <div className={cn(
+                            "px-4 py-3 rounded-2xl text-sm",
+                            msg.senderRole === 'admin'
+                              ? "bg-primary text-primary-foreground rounded-tr-none"
+                              : "bg-muted text-foreground rounded-tl-none"
+                          )}>
+                            {msg.senderRole === 'admin' ? msg.text.replace(`@${activeChatUser}`, '').trim() : msg.text}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground mt-1 px-1">
+                            {msg.senderName} • {new Date(msg.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <form onSubmit={handleSendAdminMessage} className="p-4 border-t bg-muted/10 flex gap-2">
+                      <Input
+                        placeholder="Type reply..."
+                        className="bg-background border-none h-11 rounded-xl"
+                        value={chatInput}
+                        onChange={e => setChatInput(e.target.value)}
+                      />
+                      <Button type="submit" className="h-11 px-6 rounded-xl font-bold uppercase tracking-tighter">Send Reply</Button>
+                    </form>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground space-y-4 opacity-50">
+                    <MessageSquare className="h-12 w-12" />
+                    <p className="font-bold uppercase tracking-widest text-sm">Select a conversation to begin</p>
+                  </div>
+                )}
+              </div>
             </Card>
           </TabsContent>
 
