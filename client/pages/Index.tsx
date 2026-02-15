@@ -275,8 +275,8 @@ export default function Index() {
             <div>
               <h4 className="font-black uppercase italic mb-8 tracking-tighter">Connection</h4>
               <ul className="space-y-4 text-sm font-bold uppercase tracking-tighter text-muted-foreground">
-                <li>contact@aether.store</li>
-                <li>1-800-AETHER-XT</li>
+                <li>contact@help.com</li>
+                <li>519-111-1111</li>
               </ul>
             </div>
           </div>
