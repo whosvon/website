@@ -126,6 +126,10 @@ export default function Admin() {
       return;
     }
     fetchData();
+
+    // Global polling for live updates (Dashboard stats, Orders, Chat)
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, [navigate]);
 
   const fetchData = async () => {
@@ -152,7 +156,25 @@ export default function Admin() {
       setConfig(configData);
       setConfigForm(configData);
       setMessages(chatData);
-      setUsers(userData.filter((u: User) => u.role === 'customer'));
+
+      // Merge registered users and guest users from chat
+      const registeredUsers = userData.filter((u: User) => u.role === 'customer');
+      const chatUsers = chatData.reduce((acc: any[], msg: ChatMessage) => {
+        if (!acc.find(u => u.id === msg.senderId) && msg.senderId !== "admin-master") {
+          const isRegistered = registeredUsers.find(ru => ru.id === msg.senderId);
+          if (!isRegistered) {
+            acc.push({
+              id: msg.senderId,
+              name: msg.senderName || "Guest",
+              email: "Guest User",
+              role: 'customer'
+            });
+          }
+        }
+        return acc;
+      }, [...registeredUsers]);
+
+      setUsers(chatUsers);
 
     } catch (error) {
       toast.error("Security Clearance Required. Data retrieval failed.");
@@ -160,13 +182,6 @@ export default function Admin() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (activeChatUser) {
-      const interval = setInterval(fetchData, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [activeChatUser]);
 
   const handleSendAdminMessage = async (e: React.FormEvent) => {
     e.preventDefault();

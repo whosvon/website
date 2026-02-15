@@ -11,6 +11,7 @@ export default function ChatWidget() {
   const [message, setMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [guestId, setGuestId] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -18,15 +19,22 @@ export default function ChatWidget() {
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
+
+    let currentGuestId = sessionStorage.getItem("guestId");
+    if (!currentGuestId) {
+      currentGuestId = "guest-" + Math.random().toString(36).substr(2, 9);
+      sessionStorage.setItem("guestId", currentGuestId);
+    }
+    setGuestId(currentGuestId);
   }, []);
 
   useEffect(() => {
     if (isOpen) {
       fetchMessages();
-      const interval = setInterval(fetchMessages, 3000);
+      const interval = setInterval(fetchMessages, 2000);
       return () => clearInterval(interval);
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, guestId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -35,24 +43,15 @@ export default function ChatWidget() {
   }, [chatMessages]);
 
   const fetchMessages = async () => {
+    const currentId = user?.id || guestId;
+    if (!currentId) return;
+
     try {
-      const url = user ? `/api/chat?userId=${user.id}` : "/api/chat";
+      const url = `/api/chat?userId=${currentId}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        // For guests, we only show messages they sent (using local storage session ID maybe)
-        // For simplicity in this mock, we'll just filter by a guestId we store in sessionStorage
-        let guestId = sessionStorage.getItem("guestId");
-        if (!guestId) {
-          guestId = "guest-" + Math.random().toString(36).substr(2, 9);
-          sessionStorage.setItem("guestId", guestId);
-        }
-        
-        const currentId = user?.id || guestId;
-        const filtered = data.filter((m: ChatMessage) => 
-          m.senderId === currentId || m.text.includes(`@${currentId}`)
-        );
-        setChatMessages(filtered);
+        setChatMessages(data);
       }
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -63,14 +62,9 @@ export default function ChatWidget() {
     e.preventDefault();
     if (!message.trim()) return;
 
-    let guestId = sessionStorage.getItem("guestId");
-    if (!guestId) {
-      guestId = "guest-" + Math.random().toString(36).substr(2, 9);
-      sessionStorage.setItem("guestId", guestId);
-    }
-
+    const currentId = user?.id || guestId;
     const newMessage = {
-      senderId: user?.id || guestId,
+      senderId: currentId,
       senderName: user?.name || "Guest",
       senderRole: user?.role || 'customer',
       text: message
