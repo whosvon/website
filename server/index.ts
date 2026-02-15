@@ -33,6 +33,13 @@ export function createServer() {
 
   app.get("/api/users", getUsers);
 
+  app.post("/api/subscribe", (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email required" });
+    console.log(`New subscriber: ${email}`);
+    res.json({ success: true, message: "Welcome to the network." });
+  });
+
   app.post("/api/login", handleLogin);
   app.post("/api/register", handleRegister);
   app.post("/api/login/customer", handleCustomerLogin);

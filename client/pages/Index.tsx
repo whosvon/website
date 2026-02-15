@@ -21,6 +21,22 @@ export default function Index() {
 
   const navigate = useNavigate();
 
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 80; // height of sticky nav
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth"
+      });
+    }
+  };
+
   useEffect(() => {
     fetchData();
     const savedUser = localStorage.getItem("user");
@@ -139,9 +155,9 @@ export default function Index() {
           </Link>
           
           <div className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">Home</Link>
-            <Link to="#" className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">Shop</Link>
-            <Link to="#" className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">About</Link>
+            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">Home</button>
+            <button onClick={() => scrollToSection('products')} className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">Shop</button>
+            <button onClick={() => scrollToSection('about')} className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">About</button>
           </div>
 
           <div className="flex items-center gap-4">
@@ -226,11 +242,12 @@ export default function Index() {
       {/* Dynamic Sections */}
       <div className="flex flex-col">
         {config?.sections.filter(s => s.visible).map((section) => (
-          <SectionRenderer 
-            key={section.id} 
-            section={section} 
-            products={products} 
-            addToCart={addToCart} 
+          <SectionRenderer
+            key={section.id}
+            section={section}
+            products={products}
+            addToCart={addToCart}
+            scrollToSection={scrollToSection}
           />
         ))}
       </div>
@@ -250,8 +267,8 @@ export default function Index() {
             <div>
               <h4 className="font-black uppercase italic mb-8 tracking-tighter">Quick Access</h4>
               <ul className="space-y-4 text-sm font-bold uppercase tracking-tighter text-muted-foreground">
-                <li><Link to="#" className="hover:text-primary transition-colors">Neural Catalog</Link></li>
-                <li><Link to="#" className="hover:text-primary transition-colors">Security Protocol</Link></li>
+                <li><button onClick={() => scrollToSection('products')} className="hover:text-primary transition-colors uppercase">Neural Catalog</button></li>
+                <li><button onClick={() => scrollToSection('about')} className="hover:text-primary transition-colors uppercase">Security Protocol</button></li>
                 <li><Link to="/admin" className="hover:text-primary transition-colors">Terminal</Link></li>
               </ul>
             </div>
@@ -273,11 +290,35 @@ export default function Index() {
   );
 }
 
-function SectionRenderer({ section, products, addToCart }: { section: StorefrontSection, products: Product[], addToCart: (p: Product) => void }) {
+function SectionRenderer({ section, products, addToCart, scrollToSection }: { section: StorefrontSection, products: Product[], addToCart: (p: Product) => void, scrollToSection: (id: string) => void }) {
+  const [email, setEmail] = useState("");
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setIsSubscribing(true);
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        toast.success("Identity registered. Welcome to the network.");
+        setEmail("");
+      }
+    } catch (error) {
+      toast.error("Signal lost. Try again later.");
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
   switch (section.type) {
     case 'hero':
       return (
-        <section className="relative py-20 lg:py-32 overflow-hidden bg-muted/20">
+        <section id="hero" className="relative py-20 lg:py-32 overflow-hidden bg-muted/20">
           <div className="container mx-auto px-4">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-10 max-w-2xl">
@@ -291,10 +332,10 @@ function SectionRenderer({ section, products, addToCart }: { section: Storefront
                   {section.subtitle}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-6 pt-4">
-                  <Button size="lg" className="h-16 px-10 text-lg font-black uppercase italic rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                  <Button onClick={() => scrollToSection('products')} size="lg" className="h-16 px-10 text-lg font-black uppercase italic rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                     Shop Now <ArrowRight className="ml-2 h-6 w-6" />
                   </Button>
-                  <Button size="lg" variant="outline" className="h-16 px-10 text-lg font-black uppercase italic rounded-2xl border-2 hover:bg-primary/5 transition-all active:scale-95">
+                  <Button onClick={() => scrollToSection('about')} size="lg" variant="outline" className="h-16 px-10 text-lg font-black uppercase italic rounded-2xl border-2 hover:bg-primary/5 transition-all active:scale-95">
                     Explore
                   </Button>
                 </div>
@@ -315,7 +356,7 @@ function SectionRenderer({ section, products, addToCart }: { section: Storefront
       );
     case 'products':
       return (
-        <section className="py-24">
+        <section id="products" className="py-24">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
               <div className="space-y-2">
@@ -354,7 +395,7 @@ function SectionRenderer({ section, products, addToCart }: { section: Storefront
       );
     case 'about':
       return (
-        <section className="py-24 bg-primary text-primary-foreground overflow-hidden relative">
+        <section id="about" className="py-24 bg-primary text-primary-foreground overflow-hidden relative">
           <div className="container mx-auto px-4 flex flex-col items-center text-center space-y-8 relative z-10">
             <Info className="h-12 w-12 opacity-50 mb-4" />
             <h2 className="text-5xl lg:text-7xl font-black tracking-tighter uppercase italic">{section.title}</h2>
@@ -366,17 +407,26 @@ function SectionRenderer({ section, products, addToCart }: { section: Storefront
       );
     case 'newsletter':
       return (
-        <section className="py-24">
+        <section id="newsletter" className="py-24">
           <div className="container mx-auto px-4">
             <div className="bg-muted/50 rounded-[3rem] p-12 lg:p-24 flex flex-col lg:flex-row items-center justify-between gap-12 border border-primary/5 relative overflow-hidden">
                <div className="space-y-6 max-w-xl text-center lg:text-left z-10">
                   <h2 className="text-5xl lg:text-7xl font-black tracking-tighter uppercase italic leading-none">{section.title}</h2>
                   <p className="text-xl text-muted-foreground italic">{section.subtitle}</p>
                </div>
-               <div className="flex w-full lg:w-auto gap-4 z-10">
-                  <Input placeholder="terminal@aether.store" className="h-16 rounded-2xl bg-background border-none text-lg px-8 lg:w-80 shadow-inner" />
-                  <Button className="h-16 px-10 rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/20">Subscribe</Button>
-               </div>
+               <form onSubmit={handleSubscribe} className="flex w-full lg:w-auto gap-4 z-10">
+                  <Input
+                    placeholder="terminal@aether.store"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-16 rounded-2xl bg-background border-none text-lg px-8 lg:w-80 shadow-inner"
+                  />
+                  <Button type="submit" disabled={isSubscribing} className="h-16 px-10 rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/20">
+                    {isSubscribing ? "Encrypting..." : "Subscribe"}
+                  </Button>
+               </form>
                <Mail className="absolute -bottom-24 -right-24 h-96 w-96 text-primary/5 rotate-12" />
             </div>
           </div>
