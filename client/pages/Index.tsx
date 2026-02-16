@@ -159,6 +159,13 @@ export default function Index() {
               />
             </div>
 
+            {config?.loyaltySettings.enabled && currentUser && (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-full border border-primary/10">
+                <Coins className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[10px] font-black text-primary italic">{currentUser.loyaltyPoints} PTS</span>
+              </div>
+            )}
+
             <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full h-11 w-11">
@@ -192,6 +199,26 @@ export default function Index() {
                         </motion.div>
                       ))}
                     </div>
+
+                    {config?.loyaltySettings.enabled && currentUser && currentUser.loyaltyPoints > 0 && (
+                      <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2 text-primary">
+                            <Coins className="h-4 w-4" />
+                            <span className="text-[10px] font-black uppercase italic">Redeem Points</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-muted-foreground">{currentUser.loyaltyPoints} Available</span>
+                        </div>
+                        <Slider 
+                          value={[pointsToUse]} 
+                          max={Math.min(currentUser.loyaltyPoints, cartSubtotal * config.loyaltySettings.pointsToDollarRate)} 
+                          step={config.loyaltySettings.pointsToDollarRate}
+                          onValueChange={(val) => setPointsToUse(val[0])}
+                        />
+                        <p className="text-[9px] text-center font-bold text-muted-foreground uppercase">Using {pointsToUse} points for ${discountAmount.toFixed(2)} off</p>
+                      </div>
+                    )}
+
                     <div className="border-t pt-4 space-y-4">
                       <div className="flex justify-between font-black uppercase italic">
                         <span>Total</span>

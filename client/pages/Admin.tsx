@@ -244,6 +244,59 @@ export default function Admin() {
                   </div>
                 )}
 
+                {/* Loyalty Program Settings */}
+                <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+                  <CardHeader>
+                    <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                      <Coins className="h-4 w-4" /> Loyalty Program
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
+                      <div className="space-y-0.5">
+                        <Label className="text-xs font-black uppercase italic">Enable Loyalty Points</Label>
+                        <p className="text-[10px] text-muted-foreground">Allow customers to earn and redeem points.</p>
+                      </div>
+                      <Switch 
+                        checked={configForm?.loyaltySettings.enabled} 
+                        onCheckedChange={(val) => setConfigForm(prev => prev ? {
+                          ...prev, 
+                          loyaltySettings: { ...prev.loyaltySettings, enabled: val }
+                        } : null)}
+                      />
+                    </div>
+
+                    {configForm?.loyaltySettings.enabled && (
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase">Points per $1 Spent</Label>
+                          <Input
+                            type="number"
+                            value={configForm?.loyaltySettings.pointsPerDollar}
+                            onChange={e => setConfigForm(prev => prev ? {
+                              ...prev, 
+                              loyaltySettings: { ...prev.loyaltySettings, pointsPerDollar: Number(e.target.value) }
+                            } : null)}
+                            className="h-12 bg-muted/30 font-bold"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase">Points for $1 Discount</Label>
+                          <Input
+                            type="number"
+                            value={configForm?.loyaltySettings.pointsToDollarRate}
+                            onChange={e => setConfigForm(prev => prev ? {
+                              ...prev, 
+                              loyaltySettings: { ...prev.loyaltySettings, pointsToDollarRate: Number(e.target.value) }
+                            } : null)}
+                            className="h-12 bg-muted/30 font-bold"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
                 <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
                   <CardHeader><CardTitle className="text-xs font-black uppercase tracking-widest">Global Identity</CardTitle></CardHeader>
                   <CardContent>
