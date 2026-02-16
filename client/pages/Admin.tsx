@@ -812,6 +812,16 @@ export default function Admin() {
                           />
                         </div>
 
+                        <div className="space-y-2 col-span-2">
+                          <Label>E-Transfer Email</Label>
+                          <Input
+                            value={configForm?.etransferEmail}
+                            onChange={e => setConfigForm(prev => prev ? {...prev, etransferEmail: e.target.value} : null)}
+                            className="bg-muted/30 h-12"
+                            placeholder="Email for E-Transfer payments"
+                          />
+                        </div>
+
                         <div className="space-y-2">
                           <Label>Accent Color (HSL)</Label>
                           <Input

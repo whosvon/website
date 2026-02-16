@@ -76,5 +76,6 @@ export interface StorefrontConfig {
   backgroundColor: string;
   textColor: string;
   announcementText?: string;
+  etransferEmail?: string;
   sections: StorefrontSection[];
 }

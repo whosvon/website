@@ -16,6 +16,7 @@ export let storefrontConfig: StorefrontConfig = {
   backgroundColor: "0 0% 100%", // White
   textColor: "240 10% 3.9%", // Dark gray
   announcementText: "Welcome to our new store! Check out our latest products.",
+  etransferEmail: "payments@aether.store",
   sections: [
     {
       id: "hero-1",
