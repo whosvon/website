@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -28,8 +28,8 @@ export default function Admin() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [activeChatUser, setActiveChatUser] = useState<string | null>(null);
-  const [chatInput, setChatInput] = useState("");
+  const [newProduct, setNewProduct] = useState<Partial<Product>>({ name: "", price: 0, category: "General", stock: 0, description: "", image: "" });
+  
   const [config, setConfig] = useState<StorefrontConfig | null>(null);
   const [configForm, setConfigForm] = useState<StorefrontConfig | null>(null);
   const [activeEditorSection, setActiveEditorSection] = useState<string | null>(null);
@@ -65,6 +65,57 @@ export default function Admin() {
       toast.error("Data retrieval failed.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newProduct),
+      });
+      if (res.ok) {
+        toast.success("Product added to inventory.");
+        setIsAddDialogOpen(false);
+        setNewProduct({ name: "", price: 0, category: "General", stock: 0, description: "", image: "" });
+        fetchData();
+      }
+    } catch (error) {
+      toast.error("Failed to add product.");
+    }
+  };
+
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    try {
+      const res = await fetch(`/api/products/${editingProduct.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingProduct),
+      });
+      if (res.ok) {
+        toast.success("Product updated.");
+        setIsEditDialogOpen(false);
+        fetchData();
+      }
+    } catch (error) {
+      toast.error("Update failed.");
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this product?")) return;
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Product removed.");
+        fetchData();
+      }
+    } catch (error) {
+      toast.error("Deletion failed.");
     }
   };
 
@@ -119,9 +170,46 @@ export default function Admin() {
             <h2 className="text-4xl font-black tracking-tighter uppercase italic">Control Center</h2>
             <p className="text-muted-foreground font-medium">System status and configuration.</p>
           </div>
-          <Button className="h-12 px-8 rounded-2xl font-black uppercase italic" onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Add Product
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="h-12 px-8 rounded-2xl font-black uppercase italic">
+                <Plus className="h-4 w-4 mr-2" /> Add Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px] rounded-[2rem]">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">New Protocol</DialogTitle>
+                <DialogDescription>Add a new product to the neural catalog.</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddProduct} className="space-y-6 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Name</Label>
+                    <Input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} required className="bg-muted/30" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Price ($)</Label>
+                    <Input type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} required className="bg-muted/30" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Category</Label>
+                    <Input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="bg-muted/30" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Stock</Label>
+                    <Input type="number" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="bg-muted/30" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">Image</Label>
+                  <ImageUpload value={newProduct.image} onChange={val => setNewProduct({...newProduct, image: val})} />
+                </div>
+                <Button type="submit" className="w-full h-14 rounded-2xl font-black uppercase italic">Initialize Product</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -164,12 +252,76 @@ export default function Admin() {
           </div>
         </div>
 
-        <Tabs defaultValue="editor" className="space-y-8">
+        <Tabs defaultValue="products" className="space-y-8">
           <TabsList className="bg-background border p-1 rounded-2xl h-14">
             <TabsTrigger value="products" className="rounded-xl px-8 font-black uppercase italic text-xs">Inventory</TabsTrigger>
             <TabsTrigger value="orders" className="rounded-xl px-8 font-black uppercase italic text-xs">Orders</TabsTrigger>
             <TabsTrigger value="editor" className="rounded-xl px-8 font-black uppercase italic text-xs">Builder</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="products" className="space-y-4">
+            <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-none">
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Product</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Category</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Price</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Stock</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((p) => (
+                    <TableRow key={p.id} className="border-primary/5 hover:bg-primary/5 transition-colors">
+                      <TableCell className="font-bold italic uppercase flex items-center gap-3">
+                        <img src={p.image} className="w-10 h-10 rounded-lg object-cover border" />
+                        {p.name}
+                      </TableCell>
+                      <TableCell><Badge variant="outline" className="text-[9px] uppercase font-black">{p.category}</Badge></TableCell>
+                      <TableCell className="font-black text-primary">${p.price}</TableCell>
+                      <TableCell className="font-mono text-xs">{p.stock}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button variant="ghost" size="icon" onClick={() => { setEditingProduct(p); setIsEditDialogOpen(true); }} className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary"><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="orders" className="space-y-4">
+            <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-none">
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Order ID</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Customer</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Total</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Status</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((o) => (
+                    <TableRow key={o.id} className="border-primary/5 hover:bg-primary/5 transition-colors">
+                      <TableCell className="font-mono font-bold text-xs">{o.id}</TableCell>
+                      <TableCell className="font-bold uppercase italic text-xs">{o.customerName}</TableCell>
+                      <TableCell className="font-black text-primary">${o.total.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge variant={o.status === 'delivered' ? 'default' : o.status === 'pending' ? 'outline' : 'secondary'} className="text-[9px] uppercase font-black">
+                          {o.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-[10px] font-medium text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="editor" className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -327,6 +479,44 @@ export default function Admin() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] rounded-[2rem]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">Edit Protocol</DialogTitle>
+          </DialogHeader>
+          {editingProduct && (
+            <form onSubmit={handleUpdateProduct} className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">Name</Label>
+                  <Input value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} required className="bg-muted/30" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">Price ($)</Label>
+                  <Input type="number" value={editingProduct.price} onChange={e => setEditingProduct({...editingProduct, price: Number(e.target.value)})} required className="bg-muted/30" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">Category</Label>
+                  <Input value={editingProduct.category} onChange={e => setEditingProduct({...editingProduct, category: e.target.value})} className="bg-muted/30" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">Stock</Label>
+                  <Input type="number" value={editingProduct.stock} onChange={e => setEditingProduct({...editingProduct, stock: Number(e.target.value)})} className="bg-muted/30" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase">Image</Label>
+                <ImageUpload value={editingProduct.image} onChange={val => setEditingProduct({...editingProduct, image: val})} />
+              </div>
+              <Button type="submit" className="w-full h-14 rounded-2xl font-black uppercase italic">Update Product</Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

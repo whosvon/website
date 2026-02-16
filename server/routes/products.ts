@@ -46,3 +46,15 @@ export const updateProduct: RequestHandler = (req, res) => {
 
   res.json(products[index]);
 };
+
+export const deleteProduct: RequestHandler = (req, res) => {
+  const { id } = req.params;
+  const index = products.findIndex(p => p.id === id);
+  
+  if (index === -1) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+  
+  products.splice(index, 1);
+  res.json({ success: true });
+};

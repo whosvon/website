@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { getProducts, addProduct, updateProduct } from "./routes/products";
+import { getProducts, addProduct, updateProduct, deleteProduct } from "./routes/products";
 import { getOrders, createOrder, getMyOrders } from "./routes/orders";
 import { handleLogin, handleRegister, handleCustomerLogin, handleGoogleLogin, getUsers } from "./routes/auth";
 import { getConfig, updateConfig } from "./routes/config";
@@ -19,6 +19,7 @@ export function createServer() {
   app.get("/api/products", getProducts);
   app.post("/api/products", addProduct);
   app.put("/api/products/:id", updateProduct);
+  app.delete("/api/products/:id", deleteProduct);
 
   app.get("/api/orders", getOrders);
   app.get("/api/orders/me", getMyOrders);
