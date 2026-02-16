@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown } from "lucide-react";
+import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown, Truck, MapPin, CreditCard, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { motion, AnimatePresence } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 export default function Index() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -21,10 +23,15 @@ export default function Index() {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'payment'>('cart');
+  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'logistics' | 'payment'>('cart');
   const [searchQuery, setSearchQuery] = useState("");
   
+  // Checkout State
+  const [shippingMethod, setShippingMethod] = useState<'pickup' | 'delivery'>('delivery');
+  const [paymentMethod, setPaymentMethod] = useState<'etransfer' | 'on_arrival'>('etransfer');
+  const [customerDetails, setCustomerDetails] = useState({ name: "", phone: "", address: "" });
   const [pointsToUse, setPointsToUse] = useState(0);
+  
   const navigate = useNavigate();
 
   const scrollToSection = (id: string) => {
@@ -42,7 +49,11 @@ export default function Index() {
   useEffect(() => {
     fetchData();
     const savedUser = localStorage.getItem("user");
-    if (savedUser) setCurrentUser(JSON.parse(savedUser));
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      setCurrentUser(user);
+      setCustomerDetails(prev => ({ ...prev, name: user.name || "", phone: user.phone || "" }));
+    }
   }, []);
 
   const fetchData = async () => {
@@ -82,14 +93,42 @@ export default function Index() {
     setCart(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Calculations
   const cartSubtotal = cart.reduce((sum, p) => sum + p.price, 0);
   const discountAmount = config?.loyaltySettings.enabled ? (pointsToUse / config.loyaltySettings.pointsToDollarRate) : 0;
-  const finalTotal = Math.max(0, cartSubtotal - discountAmount);
+  const subtotalAfterDiscount = Math.max(0, cartSubtotal - discountAmount);
+  
+  const shippingFee = shippingMethod === 'delivery' 
+    ? (subtotalAfterDiscount >= (config?.shippingSettings.freeShippingThreshold || 150) ? 0 : (config?.shippingSettings.flatRate || 17.99))
+    : 0;
+    
+  const taxRate = (config?.shippingSettings.taxRate || 0) / 100;
+  const taxAmount = subtotalAfterDiscount * taxRate;
+  const finalTotal = subtotalAfterDiscount + shippingFee + taxAmount;
 
   const finalizeOrder = async () => {
+    if (shippingMethod === 'delivery' && (!customerDetails.address || !customerDetails.phone)) {
+      toast.error("Please provide delivery details.");
+      return;
+    }
+    
     setIsCheckingOut(true);
     const items: OrderItem[] = cart.map(p => ({ productId: p.id, name: p.name, price: p.price, quantity: 1 }));
-    const orderData = { userId: currentUser?.id, customerName: currentUser?.name || currentUser?.email, customerEmail: currentUser?.email, items, total: cartSubtotal, pointsUsed: pointsToUse };
+    const orderData = { 
+      userId: currentUser?.id, 
+      customerName: customerDetails.name || currentUser?.name || currentUser?.email, 
+      customerEmail: currentUser?.email,
+      customerPhone: customerDetails.phone,
+      shippingAddress: shippingMethod === 'delivery' ? customerDetails.address : 'PICKUP',
+      items, 
+      subtotal: cartSubtotal,
+      shippingFee,
+      taxAmount,
+      total: finalTotal, 
+      pointsUsed: pointsToUse,
+      shippingMethod,
+      paymentMethod
+    };
 
     try {
       const res = await fetch("/api/orders", {
@@ -107,6 +146,7 @@ export default function Index() {
         setCart([]);
         setPointsToUse(0);
         setIsCartOpen(false);
+        setCheckoutStep('cart');
         navigate("/account");
       }
     } catch (error) {
@@ -166,7 +206,7 @@ export default function Index() {
               </div>
             )}
 
-            <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
+            <Dialog open={isCartOpen} onOpenChange={(open) => { setIsCartOpen(open); if(!open) setCheckoutStep('cart'); }}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full h-11 w-11">
                   <ShoppingCart className="h-5 w-5" />
@@ -177,16 +217,19 @@ export default function Index() {
                   )}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] bg-background border-primary/20 rounded-[2rem]">
+              <DialogContent className="sm:max-w-[450px] bg-background border-primary/20 rounded-[2rem] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
-                    {checkoutStep === 'cart' ? 'Registry' : 'Payment'}
+                    {checkoutStep === 'cart' ? 'Registry' : checkoutStep === 'logistics' ? 'Logistics' : 'Payment'}
                   </DialogTitle>
                 </DialogHeader>
-                {checkoutStep === 'cart' ? (
+                
+                {checkoutStep === 'cart' && (
                   <div className="space-y-6">
-                    <div className="max-h-[40vh] overflow-y-auto space-y-3 pr-2">
-                      {cart.map((item, idx) => (
+                    <div className="max-h-[30vh] overflow-y-auto space-y-3 pr-2">
+                      {cart.length === 0 ? (
+                        <div className="text-center py-10 text-muted-foreground text-xs font-bold uppercase italic">Registry is empty</div>
+                      ) : cart.map((item, idx) => (
                         <motion.div layout key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-2xl border border-primary/5">
                           <div className="flex items-center gap-3">
                             <img src={item.image} className="w-12 h-12 rounded-xl object-cover border" />
@@ -200,7 +243,7 @@ export default function Index() {
                       ))}
                     </div>
 
-                    {config?.loyaltySettings.enabled && currentUser && currentUser.loyaltyPoints > 0 && (
+                    {config?.loyaltySettings.enabled && currentUser && currentUser.loyaltyPoints > 0 && cart.length > 0 && (
                       <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2 text-primary">
@@ -220,20 +263,141 @@ export default function Index() {
                     )}
 
                     <div className="border-t pt-4 space-y-4">
-                      <div className="flex justify-between font-black uppercase italic">
-                        <span>Total</span>
-                        <span className="text-xl text-primary">${finalTotal.toFixed(2)}</span>
+                      <div className="flex justify-between font-black uppercase italic text-xs">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span>${cartSubtotal.toFixed(2)}</span>
                       </div>
-                      <Button onClick={() => setCheckoutStep('payment')} className="w-full h-14 font-black uppercase italic rounded-2xl">Checkout</Button>
+                      {discountAmount > 0 && (
+                        <div className="flex justify-between font-black uppercase italic text-xs text-primary">
+                          <span>Discount</span>
+                          <span>-${discountAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <Button disabled={cart.length === 0} onClick={() => setCheckoutStep('logistics')} className="w-full h-14 font-black uppercase italic rounded-2xl">Continue to Logistics</Button>
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-6 py-4">
-                    <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-4">
-                      <p className="text-xs text-muted-foreground leading-relaxed">Send E-Transfer to:</p>
-                      <p className="font-mono font-bold text-primary text-center bg-background p-3 rounded-xl border border-dashed border-primary/20">{config?.etransferEmail}</p>
+                )}
+
+                {checkoutStep === 'logistics' && (
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black uppercase tracking-widest">Select Method</Label>
+                      <RadioGroup value={shippingMethod} onValueChange={(val: any) => setShippingMethod(val)} className="grid grid-cols-2 gap-4">
+                        <div className={cn("relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer", shippingMethod === 'delivery' ? "border-primary bg-primary/5" : "border-muted hover:border-primary/20")}>
+                          <RadioGroupItem value="delivery" id="delivery" className="sr-only" />
+                          <Label htmlFor="delivery" className="cursor-pointer flex flex-col items-center gap-2">
+                            <Truck className={cn("h-6 w-6", shippingMethod === 'delivery' ? "text-primary" : "text-muted-foreground")} />
+                            <span className="text-[10px] font-black uppercase italic">Delivery</span>
+                          </Label>
+                        </div>
+                        <div className={cn("relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer", shippingMethod === 'pickup' ? "border-primary bg-primary/5" : "border-muted hover:border-primary/20")}>
+                          <RadioGroupItem value="pickup" id="pickup" className="sr-only" />
+                          <Label htmlFor="pickup" className="cursor-pointer flex flex-col items-center gap-2">
+                            <MapPin className={cn("h-6 w-6", shippingMethod === 'pickup' ? "text-primary" : "text-muted-foreground")} />
+                            <span className="text-[10px] font-black uppercase italic">Pickup</span>
+                          </Label>
+                        </div>
+                      </RadioGroup>
                     </div>
-                    <Button onClick={finalizeOrder} disabled={isCheckingOut} className="w-full h-14 font-black uppercase italic rounded-2xl">Confirm Order</Button>
+
+                    {shippingMethod === 'delivery' ? (
+                      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase">Full Name</Label>
+                          <Input value={customerDetails.name} onChange={e => setCustomerDetails({...customerDetails, name: e.target.value})} placeholder="John Doe" className="h-12 bg-muted/30 rounded-xl" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase">Phone Number</Label>
+                          <Input value={customerDetails.phone} onChange={e => setCustomerDetails({...customerDetails, phone: e.target.value})} placeholder="+1 (555) 000-0000" className="h-12 bg-muted/30 rounded-xl" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase">Shipping Address</Label>
+                          <Textarea value={customerDetails.address} onChange={e => setCustomerDetails({...customerDetails, address: e.target.value})} placeholder="Street, City, Province, Postal Code" className="bg-muted/30 rounded-xl min-h-[80px]" />
+                        </div>
+                        <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center gap-3">
+                          <Info className="h-4 w-4 text-primary" />
+                          <p className="text-[9px] font-bold uppercase italic text-primary">
+                            {shippingFee === 0 ? "FREE SHIPPING APPLIED" : `FLAT RATE SHIPPING: $${shippingFee}`}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="p-4 bg-muted/30 rounded-2xl border border-primary/5 space-y-2">
+                          <Label className="text-[10px] font-black uppercase opacity-50">Pickup Location</Label>
+                          <p className="text-xs font-bold uppercase italic">{config?.shippingSettings.pickupLocation}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase">Payment Timing</Label>
+                          <RadioGroup value={paymentMethod} onValueChange={(val: any) => setPaymentMethod(val)} className="space-y-2">
+                            <div className={cn("flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer", paymentMethod === 'etransfer' ? "border-primary bg-primary/5" : "border-muted")}>
+                              <Label htmlFor="pay-now" className="flex items-center gap-3 cursor-pointer">
+                                <CreditCard className="h-4 w-4" />
+                                <span className="text-[10px] font-black uppercase italic">Pay Now (E-Transfer)</span>
+                              </Label>
+                              <RadioGroupItem value="etransfer" id="pay-now" />
+                            </div>
+                            {config?.shippingSettings.allowPayOnArrival && (
+                              <div className={cn("flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer", paymentMethod === 'on_arrival' ? "border-primary bg-primary/5" : "border-muted")}>
+                                <Label htmlFor="pay-arrival" className="flex items-center gap-3 cursor-pointer">
+                                  <Coins className="h-4 w-4" />
+                                  <span className="text-[10px] font-black uppercase italic">Pay on Arrival</span>
+                                </Label>
+                                <RadioGroupItem value="on_arrival" id="pay-arrival" />
+                              </div>
+                            )}
+                          </RadioGroup>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={() => setCheckoutStep('cart')} className="h-14 flex-1 rounded-2xl font-black uppercase italic">Back</Button>
+                      <Button onClick={() => setCheckoutStep('payment')} className="h-14 flex-[2] rounded-2xl font-black uppercase italic">Review & Pay</Button>
+                    </div>
+                  </div>
+                )}
+
+                {checkoutStep === 'payment' && (
+                  <div className="space-y-6">
+                    <div className="bg-muted/30 p-6 rounded-[2rem] border border-primary/5 space-y-4">
+                      <div className="space-y-2 border-b pb-4">
+                        <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
+                          <span>Subtotal</span>
+                          <span>${subtotalAfterDiscount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
+                          <span>Shipping</span>
+                          <span>{shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
+                          <span>Tax ({config?.shippingSettings.taxRate}%)</span>
+                          <span>${taxAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between font-black uppercase italic">
+                        <span className="text-sm">Total</span>
+                        <span className="text-2xl text-primary">${finalTotal.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {paymentMethod === 'etransfer' ? (
+                      <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-4 animate-in zoom-in-95">
+                        <p className="text-[10px] font-black uppercase italic text-center text-primary">E-Transfer Protocol</p>
+                        <p className="font-mono font-bold text-primary text-center bg-background p-3 rounded-xl border border-dashed border-primary/20">{config?.etransferEmail}</p>
+                        <p className="text-[9px] text-center text-muted-foreground uppercase font-medium">Please include your name in the transfer notes.</p>
+                      </div>
+                    ) : (
+                      <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-2 text-center animate-in zoom-in-95">
+                        <p className="text-[10px] font-black uppercase italic text-primary">Pay on Arrival</p>
+                        <p className="text-[9px] text-muted-foreground uppercase font-medium">Please have payment ready at the pickup location.</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={() => setCheckoutStep('logistics')} className="h-14 flex-1 rounded-2xl font-black uppercase italic">Back</Button>
+                      <Button onClick={finalizeOrder} disabled={isCheckingOut} className="h-14 flex-[2] rounded-2xl font-black uppercase italic">Confirm Order</Button>
+                    </div>
                   </div>
                 )}
               </DialogContent>

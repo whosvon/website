@@ -41,12 +41,19 @@ export interface Order {
   userId?: string;
   customerName: string;
   customerEmail: string;
+  customerPhone?: string;
+  shippingAddress?: string;
   items: OrderItem[];
+  subtotal: number;
+  shippingFee: number;
+  taxAmount: number;
   total: number;
   pointsUsed?: number;
   pointsEarned?: number;
   discountAmount?: number;
   status: 'pending' | 'shipped' | 'delivered' | 'cancelled';
+  shippingMethod: 'pickup' | 'delivery';
+  paymentMethod: 'etransfer' | 'on_arrival';
   createdAt: string;
 }
 
@@ -57,7 +64,7 @@ export interface StorefrontSection {
   subtitle?: string;
   content?: string;
   image?: string;
-  items?: any[]; // For FAQ or Gallery items
+  items?: any[];
   visible: boolean;
 }
 
@@ -65,6 +72,14 @@ export interface LoyaltySettings {
   enabled: boolean;
   pointsPerDollar: number;
   pointsToDollarRate: number;
+}
+
+export interface ShippingSettings {
+  freeShippingThreshold: number;
+  flatRate: number;
+  taxRate: number;
+  pickupLocation: string;
+  allowPayOnArrival: boolean;
 }
 
 export interface SocialLinks {
@@ -84,5 +99,6 @@ export interface StorefrontConfig {
   etransferEmail?: string;
   socialLinks: SocialLinks;
   loyaltySettings: LoyaltySettings;
+  shippingSettings: ShippingSettings;
   sections: StorefrontSection[];
 }

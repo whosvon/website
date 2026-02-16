@@ -16,9 +16,22 @@ export const getMyOrders: RequestHandler = (req, res) => {
 };
 
 export const createOrder: RequestHandler = (req, res) => {
-  const { userId, customerName, customerEmail, items, total, pointsUsed } = req.body;
+  const { 
+    userId, 
+    customerName, 
+    customerEmail, 
+    customerPhone,
+    shippingAddress,
+    items, 
+    subtotal, 
+    shippingFee,
+    taxAmount,
+    total, 
+    pointsUsed,
+    shippingMethod,
+    paymentMethod
+  } = req.body;
   
-  let finalTotal = total;
   let discountAmount = 0;
   let pointsEarned = 0;
 
@@ -30,13 +43,13 @@ export const createOrder: RequestHandler = (req, res) => {
     if (pointsUsed && pointsUsed > 0) {
       if (user.loyaltyPoints >= pointsUsed) {
         discountAmount = pointsUsed / loyalty.pointsToDollarRate;
-        finalTotal = Math.max(0, total - discountAmount);
         user.loyaltyPoints -= pointsUsed;
       }
     }
 
-    // Handle earning (on the final paid amount)
-    pointsEarned = Math.floor(finalTotal * loyalty.pointsPerDollar);
+    // Handle earning (on the subtotal after discount)
+    const earnableAmount = Math.max(0, subtotal - discountAmount);
+    pointsEarned = Math.floor(earnableAmount * loyalty.pointsPerDollar);
     user.loyaltyPoints += pointsEarned;
   }
 
@@ -45,17 +58,23 @@ export const createOrder: RequestHandler = (req, res) => {
     userId,
     customerName,
     customerEmail,
+    customerPhone,
+    shippingAddress,
     items,
-    total: finalTotal,
+    subtotal,
+    shippingFee,
+    taxAmount,
+    total,
     pointsUsed: pointsUsed || 0,
     pointsEarned,
     discountAmount,
     createdAt: new Date().toISOString(),
-    status: 'pending'
+    status: 'pending',
+    shippingMethod,
+    paymentMethod
   };
 
   orders.push(newOrder);
   
-  // Return updated user data if applicable
   res.status(201).json({ order: newOrder, user });
 };

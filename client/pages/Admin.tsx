@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2 } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -395,6 +395,84 @@ export default function Admin() {
                     <p className="font-black uppercase italic tracking-tighter">Select a section to edit</p>
                   </div>
                 )}
+
+                {/* Shipping & Taxes Settings */}
+                <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+                  <CardHeader>
+                    <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                      <Truck className="h-4 w-4" /> Shipping & Taxes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase">Free Shipping Threshold ($)</Label>
+                        <Input
+                          type="number"
+                          value={configForm?.shippingSettings.freeShippingThreshold}
+                          onChange={e => setConfigForm(prev => prev ? {
+                            ...prev, 
+                            shippingSettings: { ...prev.shippingSettings, freeShippingThreshold: Number(e.target.value) }
+                          } : null)}
+                          className="h-12 bg-muted/30 font-bold"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase">Flat Shipping Rate ($)</Label>
+                        <Input
+                          type="number"
+                          value={configForm?.shippingSettings.flatRate}
+                          onChange={e => setConfigForm(prev => prev ? {
+                            ...prev, 
+                            shippingSettings: { ...prev.shippingSettings, flatRate: Number(e.target.value) }
+                          } : null)}
+                          className="h-12 bg-muted/30 font-bold"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase">Tax Rate (%)</Label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            value={configForm?.shippingSettings.taxRate}
+                            onChange={e => setConfigForm(prev => prev ? {
+                              ...prev, 
+                              shippingSettings: { ...prev.shippingSettings, taxRate: Number(e.target.value) }
+                            } : null)}
+                            className="h-12 bg-muted/30 font-bold pr-10"
+                          />
+                          <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase">Pickup Location</Label>
+                        <Input
+                          value={configForm?.shippingSettings.pickupLocation}
+                          onChange={e => setConfigForm(prev => prev ? {
+                            ...prev, 
+                            shippingSettings: { ...prev.shippingSettings, pickupLocation: e.target.value }
+                          } : null)}
+                          className="h-12 bg-muted/30 font-bold"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
+                      <div className="space-y-0.5">
+                        <Label className="text-xs font-black uppercase italic">Allow Pay on Arrival</Label>
+                        <p className="text-[10px] text-muted-foreground">Enable cash/card payment at pickup.</p>
+                      </div>
+                      <Switch 
+                        checked={configForm?.shippingSettings.allowPayOnArrival} 
+                        onCheckedChange={(val) => setConfigForm(prev => prev ? {
+                          ...prev, 
+                          shippingSettings: { ...prev.shippingSettings, allowPayOnArrival: val }
+                        } : null)}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {/* Loyalty Program Settings */}
                 <Card className="border-none shadow-sm bg-background/50 backdrop-blur">

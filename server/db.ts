@@ -23,6 +23,13 @@ export let storefrontConfig: StorefrontConfig = {
     pointsPerDollar: 10,
     pointsToDollarRate: 120
   },
+  shippingSettings: {
+    freeShippingThreshold: 150,
+    flatRate: 17.99,
+    taxRate: 13, // Default 13%
+    pickupLocation: "123 Aether Way, Toronto, ON",
+    allowPayOnArrival: true
+  },
   sections: [
     {
       id: "hero-1",
