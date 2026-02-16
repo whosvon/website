@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import { orders, users, storefrontConfig } from "../db";
+import { Order } from "@shared/api";
 
 export const getOrders: RequestHandler = (req, res) => {
   res.json(orders);
@@ -39,7 +40,7 @@ export const createOrder: RequestHandler = (req, res) => {
     user.loyaltyPoints += pointsEarned;
   }
 
-  const newOrder = {
+  const newOrder: Order = {
     id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
     userId,
     customerName,
