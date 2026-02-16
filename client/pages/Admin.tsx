@@ -544,7 +544,7 @@ export default function Admin() {
                   </Card>
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center p-20 border-2 border-dashed rounded-[3rem] opacity-50">
-                    <Layout className="h-12 w-12 mb-4" />
+                    <LayoutDashboard className="h-12 w-12 mb-4" />
                     <p className="font-black uppercase italic tracking-tighter">Select a section to edit</p>
                   </div>
                 )}
