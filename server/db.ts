@@ -17,6 +17,11 @@ export let storefrontConfig: StorefrontConfig = {
   textColor: "240 10% 3.9%", // Dark gray
   announcementText: "Welcome to our new store! Check out our latest products.",
   etransferEmail: "payments@aether.store",
+  loyaltySettings: {
+    enabled: true,
+    pointsPerDollar: 10,
+    pointsToDollarRate: 120
+  },
   sections: [
     {
       id: "hero-1",

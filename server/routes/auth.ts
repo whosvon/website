@@ -17,6 +17,7 @@ export const handleLogin: RequestHandler = (req, res) => {
         email: "admin@aether.store",
         role: "admin",
         name: "Admin",
+        loyaltyPoints: 0,
         createdAt: new Date().toISOString()
       }
     };
@@ -43,6 +44,7 @@ export const handleRegister: RequestHandler = (req, res) => {
     email,
     name: name || email.split('@')[0],
     role: 'customer',
+    loyaltyPoints: 0,
     createdAt: new Date().toISOString()
   };
 
@@ -83,6 +85,7 @@ export const handleGoogleLogin: RequestHandler = (req, res) => {
       name,
       avatar: picture,
       role: 'customer',
+      loyaltyPoints: 0,
       createdAt: new Date().toISOString()
     };
     users.push(user);

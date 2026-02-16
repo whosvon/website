@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info } from "lucide-react";
+import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import ChatWidget from "@/components/ChatWidget";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 
 export default function Index() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -19,6 +20,9 @@ export default function Index() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'payment'>('cart');
+  
+  // Loyalty state
+  const [pointsToUse, setPointsToUse] = useState(0);
 
   const navigate = useNavigate();
 
@@ -96,6 +100,10 @@ export default function Index() {
     setCheckoutStep('payment');
   };
 
+  const cartSubtotal = cart.reduce((sum, p) => sum + p.price, 0);
+  const discountAmount = config?.loyaltySettings.enabled ? (pointsToUse / config.loyaltySettings.pointsToDollarRate) : 0;
+  const finalTotal = Math.max(0, cartSubtotal - discountAmount);
+
   const finalizeOrder = async () => {
     setIsCheckingOut(true);
 
@@ -107,11 +115,12 @@ export default function Index() {
     }));
 
     const orderData = {
-      userId: currentUser.id,
-      customerName: currentUser.name || currentUser.email,
-      customerEmail: currentUser.email,
+      userId: currentUser?.id,
+      customerName: currentUser?.name || currentUser?.email,
+      customerEmail: currentUser?.email,
       items,
-      total: cart.reduce((sum, p) => sum + p.price, 0),
+      total: cartSubtotal,
+      pointsUsed: pointsToUse,
     };
 
     try {
@@ -122,8 +131,17 @@ export default function Index() {
       });
 
       if (res.ok) {
+        const data = await res.json();
         toast.success("Order secured! Track it in your account.");
+        
+        // Update local user data with new points balance
+        if (data.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+          setCurrentUser(data.user);
+        }
+        
         setCart([]);
+        setPointsToUse(0);
         setIsCartOpen(false);
         navigate("/account");
       }
@@ -167,7 +185,10 @@ export default function Index() {
           <div className="flex items-center gap-4">
             <Dialog open={isCartOpen} onOpenChange={(open) => {
         setIsCartOpen(open);
-        if (!open) setCheckoutStep('cart');
+        if (!open) {
+          setCheckoutStep('cart');
+          setPointsToUse(0);
+        }
       }}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative hover:bg-primary/5">
@@ -215,9 +236,49 @@ export default function Index() {
                     </div>
                     {cart.length > 0 && (
                       <div className="border-t pt-4 space-y-4">
-                        <div className="flex justify-between items-center font-black uppercase italic">
-                          <span>Total Acquisition Cost</span>
-                          <span className="text-xl text-primary">${cart.reduce((sum, p) => sum + p.price, 0).toFixed(2)}</span>
+                        {/* Loyalty Points Redemption */}
+                        {config?.loyaltySettings.enabled && currentUser && currentUser.loyaltyPoints > 0 && (
+                          <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-primary">
+                                <Coins className="h-4 w-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Loyalty Rewards</span>
+                              </div>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase">{currentUser.loyaltyPoints} pts available</span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-[10px] font-bold uppercase">
+                                <span>Redeem Points</span>
+                                <span className="text-primary">-${discountAmount.toFixed(2)}</span>
+                              </div>
+                              <Slider 
+                                value={[pointsToUse]} 
+                                max={Math.min(currentUser.loyaltyPoints, cartSubtotal * config.loyaltySettings.pointsToDollarRate)} 
+                                step={config.loyaltySettings.pointsToDollarRate}
+                                onValueChange={(val) => setPointsToUse(val[0])}
+                              />
+                              <p className="text-[9px] text-muted-foreground text-center uppercase font-bold">
+                                Using {pointsToUse} points for a ${discountAmount.toFixed(2)} discount
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-xs font-bold uppercase text-muted-foreground">
+                            <span>Subtotal</span>
+                            <span>${cartSubtotal.toFixed(2)}</span>
+                          </div>
+                          {discountAmount > 0 && (
+                            <div className="flex justify-between items-center text-xs font-bold uppercase text-primary">
+                              <span>Points Discount</span>
+                              <span>-${discountAmount.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center font-black uppercase italic pt-2">
+                            <span>Total Acquisition Cost</span>
+                            <span className="text-xl text-primary">${finalTotal.toFixed(2)}</span>
+                          </div>
                         </div>
                         <Button onClick={handleCheckout} className="w-full h-12 font-black uppercase italic rounded-xl">
                           Proceed to Payment
@@ -241,7 +302,7 @@ export default function Index() {
                       </div>
                       <div className="flex justify-between items-center pt-2">
                         <span className="text-xs font-bold uppercase italic">Amount Due</span>
-                        <span className="text-lg font-black text-primary">${cart.reduce((sum, p) => sum + p.price, 0).toFixed(2)}</span>
+                        <span className="text-lg font-black text-primary">${finalTotal.toFixed(2)}</span>
                       </div>
                     </div>
 

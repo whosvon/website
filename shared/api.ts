@@ -4,6 +4,7 @@ export interface User {
   name?: string;
   role: 'admin' | 'customer';
   avatar?: string;
+  loyaltyPoints: number;
   createdAt: string;
 }
 
@@ -42,6 +43,9 @@ export interface Order {
   customerEmail: string;
   items: OrderItem[];
   total: number;
+  pointsUsed?: number;
+  pointsEarned?: number;
+  discountAmount?: number;
   status: 'pending' | 'shipped' | 'delivered' | 'cancelled';
   createdAt: string;
 }
@@ -69,6 +73,12 @@ export interface StorefrontSection {
   visible: boolean;
 }
 
+export interface LoyaltySettings {
+  enabled: boolean;
+  pointsPerDollar: number;
+  pointsToDollarRate: number;
+}
+
 export interface StorefrontConfig {
   brandName: string;
   brandTagline: string;
@@ -77,5 +87,6 @@ export interface StorefrontConfig {
   textColor: string;
   announcementText?: string;
   etransferEmail?: string;
+  loyaltySettings: LoyaltySettings;
   sections: StorefrontSection[];
 }

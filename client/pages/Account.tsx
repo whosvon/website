@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { User, Order } from "@shared/api";
-import { Package, User as UserIcon, LogOut, ChevronRight, ShoppingBag } from "lucide-react";
+import { Package, User as UserIcon, LogOut, ChevronRight, ShoppingBag, Coins } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 export default function Account() {
@@ -75,7 +75,7 @@ export default function Account() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* User Profile */}
-          <div className="md:col-span-1">
+          <div className="md:col-span-1 space-y-6">
             <Card className="border-border/50 bg-card/50">
               <CardHeader className="text-center">
                 <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 border-4 border-background shadow-xl">
@@ -105,6 +105,25 @@ export default function Account() {
                   </div>
                 </div>
               </CardContent>
+            </Card>
+
+            {/* Loyalty Points Card */}
+            <Card className="border-primary/20 bg-primary/5 overflow-hidden relative">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-black uppercase italic tracking-widest flex items-center gap-2">
+                  <Coins className="h-4 w-4 text-primary" /> Loyalty Rewards
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-primary italic">{user.loyaltyPoints || 0}</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">Points</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2 font-medium uppercase">
+                  Earn points on every acquisition. Redeem them for exclusive discounts.
+                </p>
+              </CardContent>
+              <Coins className="absolute -bottom-4 -right-4 h-24 w-24 text-primary/10 rotate-12" />
             </Card>
           </div>
 
@@ -170,6 +189,12 @@ export default function Account() {
                            </div>
                          ))}
                       </div>
+                      {order.pointsEarned && order.pointsEarned > 0 && (
+                        <div className="mt-2 flex items-center gap-1 text-[10px] font-bold text-primary uppercase">
+                          <Coins className="h-3 w-3" />
+                          Earned {order.pointsEarned} points
+                        </div>
+                      )}
                       <div className="pt-2 border-t mt-2 flex justify-end">
                         <Button variant="ghost" size="sm" className="h-8 text-xs group-hover:bg-primary group-hover:text-primary-foreground transition-all">
                           View Details

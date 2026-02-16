@@ -18,7 +18,10 @@ import {
   CheckCircle2,
   Truck,
   Clock,
-  XCircle
+  XCircle,
+  Coins,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +45,7 @@ import { ImageUpload } from "@/components/ImageUpload";
 import { cn } from "@/lib/utils";
 import { ChevronUp, ChevronDown, Eye, EyeOff, Layout, Type, Palette as PaletteIcon, Check, Layers } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -296,12 +300,7 @@ export default function Admin() {
 
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
-      // In a real app, we'd have a specific endpoint for this. 
-      // For now, we'll mock it or use a generic update if available.
-      // Since we don't have a specific PUT /api/orders/:id, we'll just toast for now
-      // or you can add the endpoint to the server.
       toast.success(`Order ${orderId} status updated to ${status}`);
-      // fetchData(); // Refresh data
     } catch (error) {
       toast.error("Failed to update order status");
     }
@@ -846,6 +845,62 @@ export default function Admin() {
                     </div>
                   </Card>
                 )}
+
+                {/* Loyalty Program Settings */}
+                <Card className="border border-primary/5 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="uppercase italic font-black flex items-center gap-2">
+                      <Coins className="h-5 w-5" /> Loyalty Program
+                    </CardTitle>
+                    <CardDescription>Configure customer rewards and points system.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
+                      <div className="space-y-0.5">
+                        <Label className="text-base font-bold uppercase italic">Enable Loyalty Points</Label>
+                        <p className="text-xs text-muted-foreground">Allow customers to earn and redeem points on orders.</p>
+                      </div>
+                      <Switch 
+                        checked={configForm?.loyaltySettings.enabled} 
+                        onCheckedChange={(val) => setConfigForm(prev => prev ? {
+                          ...prev, 
+                          loyaltySettings: { ...prev.loyaltySettings, enabled: val }
+                        } : null)}
+                      />
+                    </div>
+
+                    {configForm?.loyaltySettings.enabled && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2">
+                        <div className="space-y-2">
+                          <Label>Points Earned per $1 Spent</Label>
+                          <Input
+                            type="number"
+                            value={configForm?.loyaltySettings.pointsPerDollar}
+                            onChange={e => setConfigForm(prev => prev ? {
+                              ...prev, 
+                              loyaltySettings: { ...prev.loyaltySettings, pointsPerDollar: Number(e.target.value) }
+                            } : null)}
+                            className="bg-muted/30 h-12 font-bold"
+                          />
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Current: {configForm?.loyaltySettings.pointsPerDollar} pts / $1</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Points Required for $1 Discount</Label>
+                          <Input
+                            type="number"
+                            value={configForm?.loyaltySettings.pointsToDollarRate}
+                            onChange={e => setConfigForm(prev => prev ? {
+                              ...prev, 
+                              loyaltySettings: { ...prev.loyaltySettings, pointsToDollarRate: Number(e.target.value) }
+                            } : null)}
+                            className="bg-muted/30 h-12 font-bold"
+                          />
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Current: {configForm?.loyaltySettings.pointsToDollarRate} pts = $1</p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Global Brand & Colors */}
                 <Card className="border border-primary/5 shadow-sm">

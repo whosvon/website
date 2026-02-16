@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { orders } from "../db";
+import { orders, users, storefrontConfig } from "../db";
 
 export const getOrders: RequestHandler = (req, res) => {
   res.json(orders);
@@ -15,13 +15,46 @@ export const getMyOrders: RequestHandler = (req, res) => {
 };
 
 export const createOrder: RequestHandler = (req, res) => {
-  const orderData = req.body;
+  const { userId, customerName, customerEmail, items, total, pointsUsed } = req.body;
+  
+  let finalTotal = total;
+  let discountAmount = 0;
+  let pointsEarned = 0;
+
+  const user = users.find(u => u.id === userId);
+  const loyalty = storefrontConfig.loyaltySettings;
+
+  if (user && loyalty.enabled) {
+    // Handle redemption
+    if (pointsUsed && pointsUsed > 0) {
+      if (user.loyaltyPoints >= pointsUsed) {
+        discountAmount = pointsUsed / loyalty.pointsToDollarRate;
+        finalTotal = Math.max(0, total - discountAmount);
+        user.loyaltyPoints -= pointsUsed;
+      }
+    }
+
+    // Handle earning (on the final paid amount)
+    pointsEarned = Math.floor(finalTotal * loyalty.pointsPerDollar);
+    user.loyaltyPoints += pointsEarned;
+  }
+
   const newOrder = {
-    ...orderData,
     id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+    userId,
+    customerName,
+    customerEmail,
+    items,
+    total: finalTotal,
+    pointsUsed: pointsUsed || 0,
+    pointsEarned,
+    discountAmount,
     createdAt: new Date().toISOString(),
     status: 'pending'
   };
+
   orders.push(newOrder);
-  res.status(201).json(newOrder);
+  
+  // Return updated user data if applicable
+  res.status(201).json({ order: newOrder, user });
 };
