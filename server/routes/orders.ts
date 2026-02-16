@@ -78,3 +78,16 @@ export const createOrder: RequestHandler = (req, res) => {
   
   res.status(201).json({ order: newOrder, user });
 };
+
+export const updateOrder: RequestHandler = (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  const index = orders.findIndex(o => o.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: "Order not found" });
+  }
+  
+  orders[index].status = status;
+  res.json(orders[index]);
+};

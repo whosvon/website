@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,7 +14,6 @@ import { Product, Order, StorefrontConfig, User, ChatMessage, StorefrontSection 
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
 import { cn } from "@/lib/utils";
-import { ChevronUp, ChevronDown, Eye, EyeOff, Layout, Type, Palette as PaletteIcon, Check, Layers } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -34,6 +33,11 @@ export default function Admin() {
   const [configForm, setConfigForm] = useState<StorefrontConfig | null>(null);
   const [activeEditorSection, setActiveEditorSection] = useState<string | null>(null);
 
+  // Chat State
+  const [selectedChatUser, setSelectedChatUser] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -43,6 +47,12 @@ export default function Admin() {
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, [navigate]);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [messages, selectedChatUser]);
 
   const fetchData = async () => {
     try {
@@ -65,6 +75,49 @@ export default function Admin() {
       toast.error("Data retrieval failed.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        toast.success(`Order ${orderId} marked as ${status}.`);
+        fetchData();
+      }
+    } catch (error) {
+      toast.error("Failed to update order status.");
+    }
+  };
+
+  const handleSendReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedChatUser || !replyText.trim()) return;
+
+    const adminUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const newMessage = {
+      senderId: adminUser.id || "admin-master",
+      senderName: "Support",
+      senderRole: 'admin',
+      text: `@${selectedChatUser} ${replyText}`
+    };
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newMessage),
+      });
+      if (res.ok) {
+        setReplyText("");
+        fetchData();
+      }
+    } catch (error) {
+      toast.error("Failed to send reply.");
     }
   };
 
@@ -141,6 +194,9 @@ export default function Admin() {
     date: new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     total: o.total
   }));
+
+  // Group messages by user
+  const chatUsers = Array.from(new Set(messages.filter(m => m.senderRole === 'customer').map(m => m.senderId)));
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
@@ -256,6 +312,7 @@ export default function Admin() {
           <TabsList className="bg-background border p-1 rounded-2xl h-14">
             <TabsTrigger value="products" className="rounded-xl px-8 font-black uppercase italic text-xs">Inventory</TabsTrigger>
             <TabsTrigger value="orders" className="rounded-xl px-8 font-black uppercase italic text-xs">Orders</TabsTrigger>
+            <TabsTrigger value="messages" className="rounded-xl px-8 font-black uppercase italic text-xs">Messages</TabsTrigger>
             <TabsTrigger value="editor" className="rounded-xl px-8 font-black uppercase italic text-xs">Builder</TabsTrigger>
           </TabsList>
 
@@ -301,7 +358,7 @@ export default function Admin() {
                     <TableHead className="text-[10px] font-black uppercase tracking-widest">Customer</TableHead>
                     <TableHead className="text-[10px] font-black uppercase tracking-widest">Total</TableHead>
                     <TableHead className="text-[10px] font-black uppercase tracking-widest">Status</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Date</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -315,12 +372,108 @@ export default function Admin() {
                           {o.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right text-[10px] font-medium text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <Select value={o.status} onValueChange={(val) => handleUpdateOrderStatus(o.id, val)}>
+                          <SelectTrigger className="h-8 w-32 text-[10px] font-black uppercase italic">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="shipped">Shipped</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="messages" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[600px]">
+              <Card className="lg:col-span-4 border-none shadow-sm bg-background/50 backdrop-blur overflow-y-auto">
+                <CardHeader><CardTitle className="text-xs font-black uppercase tracking-widest">Conversations</CardTitle></CardHeader>
+                <CardContent className="p-2 space-y-1">
+                  {chatUsers.length === 0 ? (
+                    <p className="text-center py-10 text-[10px] font-black uppercase opacity-50">No active chats</p>
+                  ) : chatUsers.map(userId => {
+                    const userMessages = messages.filter(m => m.senderId === userId || m.text.includes(`@${userId}`));
+                    const lastMessage = userMessages[userMessages.length - 1];
+                    const customerName = messages.find(m => m.senderId === userId)?.senderName || "Guest";
+                    
+                    return (
+                      <button 
+                        key={userId} 
+                        onClick={() => setSelectedChatUser(userId)}
+                        className={cn(
+                          "w-full text-left p-4 rounded-2xl transition-all flex flex-col gap-1",
+                          selectedChatUser === userId ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/50"
+                        )}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black uppercase italic">{customerName}</span>
+                          <span className="text-[9px] opacity-50">{new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate">{lastMessage.text.replace(`@${userId} `, '')}</p>
+                      </button>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-8 border-none shadow-sm bg-background/50 backdrop-blur flex flex-col">
+                {selectedChatUser ? (
+                  <>
+                    <CardHeader className="border-b">
+                      <CardTitle className="text-xs font-black uppercase tracking-widest">
+                        Chat with {messages.find(m => m.senderId === selectedChatUser)?.senderName || "Guest"}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-y-auto p-6 space-y-4" ref={chatScrollRef}>
+                      {messages.filter(m => m.senderId === selectedChatUser || m.text.includes(`@${selectedChatUser}`)).map((msg, i) => (
+                        <div key={i} className={cn(
+                          "flex flex-col max-w-[80%]",
+                          msg.senderRole === 'admin' ? "items-end ml-auto" : "items-start"
+                        )}>
+                          <div className={cn(
+                            "px-4 py-2 rounded-2xl text-xs",
+                            msg.senderRole === 'admin' 
+                              ? "bg-primary text-primary-foreground rounded-tr-none" 
+                              : "bg-muted text-foreground rounded-tl-none"
+                          )}>
+                            {msg.text.replace(`@${selectedChatUser} `, '')}
+                          </div>
+                          <span className="text-[9px] text-muted-foreground mt-1 px-1">
+                            {msg.senderRole === 'admin' ? "You" : msg.senderName} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))}
+                    </CardContent>
+                    <div className="p-4 border-t bg-muted/30">
+                      <form onSubmit={handleSendReply} className="flex gap-2">
+                        <Input 
+                          placeholder="Type a response..." 
+                          className="h-12 bg-background/50 border-none rounded-xl" 
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                        />
+                        <Button type="submit" size="icon" className="h-12 w-12 rounded-xl flex-shrink-0">
+                          <Send className="h-5 w-5" />
+                        </Button>
+                      </form>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center opacity-50">
+                    <MessageSquare className="h-12 w-12 mb-4" />
+                    <p className="font-black uppercase italic tracking-tighter">Select a conversation</p>
+                  </div>
+                )}
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="editor" className="space-y-8">
