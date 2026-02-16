@@ -3,14 +3,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { User, Order } from "@shared/api";
-import { Package, User as UserIcon, LogOut, ChevronRight, ShoppingBag, Coins } from "lucide-react";
+import { Package, User as UserIcon, LogOut, ChevronRight, ShoppingBag, Coins, CreditCard, Truck, MapPin, Calendar, Hash } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 export default function Account() {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -196,7 +198,12 @@ export default function Account() {
                         </div>
                       )}
                       <div className="pt-2 border-t mt-2 flex justify-end">
-                        <Button variant="ghost" size="sm" className="h-8 text-xs group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setSelectedOrder(order)}
+                          className="h-8 text-xs group-hover:bg-primary group-hover:text-primary-foreground transition-all"
+                        >
                           View Details
                           <ChevronRight className="h-3 w-3 ml-1" />
                         </Button>
@@ -209,6 +216,129 @@ export default function Account() {
           </div>
         </div>
       </main>
+
+      {/* Order Details Dialog */}
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto rounded-[2rem]">
+          {selectedOrder && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <Badge variant="outline" className="font-mono text-[10px] uppercase">
+                    {selectedOrder.status}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase">
+                    {new Date(selectedOrder.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-2">
+                  <Hash className="h-5 w-5 text-primary" />
+                  {selectedOrder.id}
+                </DialogTitle>
+                <DialogDescription className="text-[10px] font-bold uppercase tracking-widest">
+                  Order Summary & Logistics
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 py-4">
+                {/* Items List */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Acquired Items</h4>
+                  <div className="space-y-2">
+                    {selectedOrder.items.map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-muted/30 rounded-xl border border-primary/5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-background flex items-center justify-center text-[10px] font-bold border">
+                            {item.quantity}x
+                          </div>
+                          <span className="text-xs font-bold uppercase italic">{item.name}</span>
+                        </div>
+                        <span className="text-xs font-black text-primary">${(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Logistics & Payment */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-muted/30 rounded-2xl border border-primary/5 space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Truck className="h-3 w-3" />
+                      <span className="text-[9px] font-black uppercase">Method</span>
+                    </div>
+                    <p className="text-xs font-bold uppercase italic">{selectedOrder.shippingMethod}</p>
+                  </div>
+                  <div className="p-4 bg-muted/30 rounded-2xl border border-primary/5 space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CreditCard className="h-3 w-3" />
+                      <span className="text-[9px] font-black uppercase">Payment</span>
+                    </div>
+                    <p className="text-xs font-bold uppercase italic">{selectedOrder.paymentMethod === 'etransfer' ? 'E-Transfer' : 'On Arrival'}</p>
+                  </div>
+                </div>
+
+                {/* Shipping Address / Pickup */}
+                <div className="p-4 bg-muted/30 rounded-2xl border border-primary/5 space-y-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    <span className="text-[9px] font-black uppercase">Destination</span>
+                  </div>
+                  <p className="text-xs font-bold uppercase italic leading-relaxed">
+                    {selectedOrder.shippingAddress}
+                  </p>
+                </div>
+
+                {/* Financial Breakdown */}
+                <div className="space-y-2 border-t pt-4">
+                  <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>${selectedOrder.subtotal.toFixed(2)}</span>
+                  </div>
+                  {selectedOrder.discountAmount && selectedOrder.discountAmount > 0 && (
+                    <div className="flex justify-between text-[10px] font-black uppercase italic text-primary">
+                      <span>Loyalty Discount</span>
+                      <span>-${selectedOrder.discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
+                    <span>Shipping</span>
+                    <span>{selectedOrder.shippingFee === 0 ? 'FREE' : `$${selectedOrder.shippingFee.toFixed(2)}`}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
+                    <span>Tax</span>
+                    <span>${selectedOrder.taxAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-black uppercase italic pt-2 border-t border-dashed">
+                    <span className="text-sm">Total</span>
+                    <span className="text-xl text-primary">${selectedOrder.total.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* E-Transfer Instructions (if applicable) */}
+                {selectedOrder.paymentMethod === 'etransfer' && selectedOrder.status === 'pending' && (
+                  <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
+                    <p className="text-[10px] font-black uppercase italic text-primary text-center">E-Transfer Message Protocol</p>
+                    <div className="bg-background p-3 rounded-xl border border-dashed border-primary/20 text-center">
+                      <span className="font-mono font-bold text-xs text-primary">
+                        {selectedOrder.id} - {selectedOrder.customerName}
+                      </span>
+                    </div>
+                    <p className="text-[8px] text-center text-muted-foreground uppercase font-medium">
+                      Include this exact message in your transfer for verification.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-center pt-2">
+                <Button onClick={() => setSelectedOrder(null)} className="w-full h-12 rounded-2xl font-black uppercase italic">
+                  Close Details
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
