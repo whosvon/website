@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageCircle, Send, X, User as UserIcon } from "lucide-react";
+import { MessageCircle, Send, X, User as UserIcon, Clock, Mail } from "lucide-react";
 import { ChatMessage, User } from "@shared/api";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ export default function ChatWidget() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [guestId, setGuestId] = useState<string>("");
+  const [showWaitNotice, setShowWaitNotice] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,11 +37,41 @@ export default function ChatWidget() {
     }
   }, [isOpen, user, guestId]);
 
+  // Monitor wait time
+  useEffect(() => {
+    if (!isOpen || chatMessages.length === 0) {
+      setShowWaitNotice(false);
+      return;
+    }
+
+    const checkWaitTime = () => {
+      const lastMessage = chatMessages[chatMessages.length - 1];
+      
+      // If the last message is from the customer, they are waiting
+      if (lastMessage.senderRole === 'customer') {
+        const waitTimeMs = Date.now() - new Date(lastMessage.timestamp).getTime();
+        if (waitTimeMs > 60000) { // 1 minute
+          setShowWaitNotice(true);
+        } else {
+          setShowWaitNotice(false);
+        }
+      } else {
+        // Admin has responded
+        setShowWaitNotice(false);
+      }
+    };
+
+    const waitInterval = setInterval(checkWaitTime, 5000);
+    checkWaitTime(); // Initial check
+
+    return () => clearInterval(waitInterval);
+  }, [isOpen, chatMessages]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [chatMessages]);
+  }, [chatMessages, showWaitNotice]);
 
   const fetchMessages = async () => {
     const currentId = user?.id || guestId;
@@ -108,24 +139,40 @@ export default function ChatWidget() {
                 <p className="text-xs text-muted-foreground">How can we help you today?</p>
               </div>
             ) : (
-              chatMessages.map((msg) => (
-                <div key={msg.id} className={cn(
-                  "flex flex-col max-w-[80%]",
-                  msg.senderRole === 'admin' ? "items-start" : "items-end ml-auto"
-                )}>
-                  <div className={cn(
-                    "px-3 py-2 rounded-2xl text-xs",
-                    msg.senderRole === 'admin' 
-                      ? "bg-muted text-foreground rounded-tl-none" 
-                      : "bg-primary text-primary-foreground rounded-tr-none"
+              <>
+                {chatMessages.map((msg) => (
+                  <div key={msg.id} className={cn(
+                    "flex flex-col max-w-[80%]",
+                    msg.senderRole === 'admin' ? "items-start" : "items-end ml-auto"
                   )}>
-                    {msg.text}
+                    <div className={cn(
+                      "px-3 py-2 rounded-2xl text-xs",
+                      msg.senderRole === 'admin' 
+                        ? "bg-muted text-foreground rounded-tl-none" 
+                        : "bg-primary text-primary-foreground rounded-tr-none"
+                    )}>
+                      {msg.text}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground mt-1 px-1">
+                      {msg.senderRole === 'admin' ? "Support" : "You"} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                    {msg.senderRole === 'admin' ? "Support" : "You"} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              ))
+                ))}
+                
+                {showWaitNotice && (
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="bg-primary/10 border border-primary/20 rounded-2xl p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-primary">
+                        <Clock className="h-3 w-3" />
+                        <span className="text-[10px] font-black uppercase italic">System Notice</span>
+                      </div>
+                      <p className="text-[10px] font-medium leading-relaxed">
+                        We're currently experiencing high volume. Please leave your <span className="font-bold">email</span> and <span className="font-bold">issue</span> below—it may take us a while to get back to you. Sorry! :)
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
           <CardFooter className="p-3 border-t bg-muted/30">
