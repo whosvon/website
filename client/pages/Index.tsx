@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown, Truck, MapPin, CreditCard, Phone } from "lucide-react";
+import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown, Truck, MapPin, CreditCard, Phone, CheckCircle2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Product, StorefrontConfig, User as UserType, OrderItem, StorefrontSection } from "@shared/api";
+import { Product, StorefrontConfig, User as UserType, OrderItem, StorefrontSection, Order } from "@shared/api";
 import { toast } from "sonner";
 import ChatWidget from "@/components/ChatWidget";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +25,8 @@ export default function Index() {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'logistics' | 'payment'>('cart');
+  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'logistics' | 'payment' | 'success'>('cart');
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   
   // Checkout State
@@ -140,22 +141,26 @@ export default function Index() {
       });
       if (res.ok) {
         const data = await res.json();
-        toast.success("Order secured!");
+        setPlacedOrder(data.order);
         if (data.user) {
           localStorage.setItem("user", JSON.stringify(data.user));
           setCurrentUser(data.user);
         }
         setCart([]);
         setPointsToUse(0);
-        setIsCartOpen(false);
-        setCheckoutStep('cart');
-        navigate("/account");
+        setCheckoutStep('success');
+        toast.success("Order secured!");
       }
     } catch (error) {
       toast.error("Order transmission failed.");
     } finally {
       setIsCheckingOut(false);
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
   };
 
   if (loading) return (
@@ -208,7 +213,7 @@ export default function Index() {
               </div>
             )}
 
-            <Dialog open={isCartOpen} onOpenChange={(open) => { setIsCartOpen(open); if(!open) setCheckoutStep('cart'); }}>
+            <Dialog open={isCartOpen} onOpenChange={(open) => { setIsCartOpen(open); if(!open) { setCheckoutStep('cart'); setPlacedOrder(null); } }}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full h-11 w-11">
                   <ShoppingCart className="h-5 w-5" />
@@ -222,7 +227,7 @@ export default function Index() {
               <DialogContent className="sm:max-w-[450px] bg-background border-primary/20 rounded-[2rem] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
-                    {checkoutStep === 'cart' ? 'Registry' : checkoutStep === 'logistics' ? 'Logistics' : 'Payment'}
+                    {checkoutStep === 'cart' ? 'Registry' : checkoutStep === 'logistics' ? 'Logistics' : checkoutStep === 'payment' ? 'Payment' : 'Success'}
                   </DialogTitle>
                 </DialogHeader>
                 
@@ -400,6 +405,48 @@ export default function Index() {
                       <Button variant="outline" onClick={() => setCheckoutStep('logistics')} className="h-14 flex-1 rounded-2xl font-black uppercase italic">Back</Button>
                       <Button onClick={finalizeOrder} disabled={isCheckingOut} className="h-14 flex-[2] rounded-2xl font-black uppercase italic">Confirm Order</Button>
                     </div>
+                  </div>
+                )}
+
+                {checkoutStep === 'success' && placedOrder && (
+                  <div className="space-y-8 py-4 text-center animate-in zoom-in-95">
+                    <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                      <CheckCircle2 className="h-10 w-10" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-black uppercase italic tracking-tighter">Order Secured</h3>
+                      <p className="text-xs text-muted-foreground font-medium uppercase">Order ID: <span className="text-foreground font-black">{placedOrder.id}</span></p>
+                    </div>
+
+                    {placedOrder.paymentMethod === 'etransfer' && (
+                      <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-6 text-left">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black uppercase italic text-primary">1. Send E-Transfer To</p>
+                          <div className="flex items-center justify-between bg-background p-3 rounded-xl border border-dashed border-primary/20">
+                            <span className="font-mono font-bold text-xs text-primary">{config?.etransferEmail}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(config?.etransferEmail || "")}><Copy className="h-3 w-3" /></Button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black uppercase italic text-primary">2. Include in Message</p>
+                          <div className="flex items-center justify-between bg-background p-3 rounded-xl border border-dashed border-primary/20">
+                            <span className="font-mono font-bold text-xs text-primary">{placedOrder.id} - {placedOrder.customerName}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(`${placedOrder.id} - ${placedOrder.customerName}`)}><Copy className="h-3 w-3" /></Button>
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-center text-muted-foreground uppercase font-medium">Your order will be processed once payment is verified.</p>
+                      </div>
+                    )}
+
+                    {placedOrder.shippingMethod === 'pickup' && placedOrder.paymentMethod === 'on_arrival' && (
+                      <div className="bg-muted/30 p-6 rounded-[2rem] border border-primary/5 space-y-2">
+                        <p className="text-[10px] font-black uppercase italic opacity-50">Pickup Location</p>
+                        <p className="text-xs font-bold uppercase italic">{config?.shippingSettings.pickupLocation}</p>
+                        <p className="text-[9px] text-muted-foreground uppercase font-medium pt-2">Please have payment ready upon arrival.</p>
+                      </div>
+                    )}
+
+                    <Button onClick={() => navigate("/account")} className="w-full h-14 rounded-2xl font-black uppercase italic">View Order Status</Button>
                   </div>
                 )}
               </DialogContent>
