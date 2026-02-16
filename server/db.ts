@@ -1,22 +1,23 @@
 import { Product, Order, StorefrontConfig, User, ChatMessage } from "@shared/api";
 
-// Mock database - starting fresh
 export const products: Product[] = [];
-
 export const orders: Order[] = [];
-
 export const users: User[] = [];
-
 export const chatMessages: ChatMessage[] = [];
 
 export let storefrontConfig: StorefrontConfig = {
   brandName: "AETHER",
-  brandTagline: "STORE",
-  accentColor: "262 83% 58%", // Default purple
-  backgroundColor: "0 0% 100%", // White
-  textColor: "240 10% 3.9%", // Dark gray
-  announcementText: "Welcome to our new store! Check out our latest products.",
+  brandTagline: "SYSTEMS",
+  accentColor: "262 83% 58%",
+  backgroundColor: "0 0% 100%",
+  textColor: "240 10% 3.9%",
+  announcementText: "SYSTEM UPDATE: NEW INVENTORY DETECTED.",
   etransferEmail: "payments@aether.store",
+  socialLinks: {
+    instagram: "https://instagram.com",
+    twitter: "https://twitter.com",
+    discord: "https://discord.com"
+  },
   loyaltySettings: {
     enabled: true,
     pointsPerDollar: 10,
@@ -26,30 +27,35 @@ export let storefrontConfig: StorefrontConfig = {
     {
       id: "hero-1",
       type: "hero",
-      title: "Elevate Your Digital Lifestyle.",
-      subtitle: "Experience the perfect blend of minimalist design and cutting-edge technology.",
-      image: "https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?w=1200&q=80",
+      title: "The Future of Digital Commerce.",
+      subtitle: "Experience a marketplace built on speed, security, and minimalist aesthetics.",
+      image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=1200&q=80",
       visible: true
     },
     {
       id: "products-1",
       type: "products",
-      title: "Featured Inventory",
-      subtitle: "Carefully curated items for your digital existence.",
+      title: "Neural Catalog",
+      subtitle: "Browse our latest hardware and software drops.",
       visible: true
     },
     {
-      id: "about-1",
-      type: "about",
-      title: "Our Philosophy",
-      content: "We believe in high-quality products that merge form and function seamlessly.",
+      id: "faq-1",
+      type: "faq",
+      title: "Technical Support",
+      subtitle: "Commonly asked questions about our protocols.",
+      items: [
+        { q: "How do I pay?", a: "We currently accept E-Transfer for maximum security and privacy." },
+        { q: "Is shipping worldwide?", a: "Yes, we transmit physical goods to all major global hubs." },
+        { q: "What is the loyalty program?", a: "Earn points on every purchase to unlock future discounts." }
+      ],
       visible: true
     },
     {
       id: "newsletter-1",
       type: "newsletter",
       title: "Join the Network",
-      subtitle: "Subscribe for exclusive drops and technical updates.",
+      subtitle: "Subscribe for encrypted updates and early access.",
       visible: true
     }
   ]

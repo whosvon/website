@@ -50,26 +50,14 @@ export interface Order {
   createdAt: string;
 }
 
-export interface AuthResponse {
-  success: boolean;
-  token?: string;
-  user?: User;
-  message?: string;
-}
-
-export interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
 export interface StorefrontSection {
   id: string;
-  type: 'hero' | 'products' | 'about' | 'newsletter' | 'banner';
+  type: 'hero' | 'products' | 'about' | 'newsletter' | 'banner' | 'faq' | 'gallery' | 'testimonials';
   title?: string;
   subtitle?: string;
   content?: string;
   image?: string;
+  items?: any[]; // For FAQ or Gallery items
   visible: boolean;
 }
 
@@ -77,6 +65,13 @@ export interface LoyaltySettings {
   enabled: boolean;
   pointsPerDollar: number;
   pointsToDollarRate: number;
+}
+
+export interface SocialLinks {
+  instagram?: string;
+  twitter?: string;
+  facebook?: string;
+  discord?: string;
 }
 
 export interface StorefrontConfig {
@@ -87,6 +82,7 @@ export interface StorefrontConfig {
   textColor: string;
   announcementText?: string;
   etransferEmail?: string;
+  socialLinks: SocialLinks;
   loyaltySettings: LoyaltySettings;
   sections: StorefrontSection[];
 }

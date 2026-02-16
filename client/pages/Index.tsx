@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins } from "lucide-react";
+import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -10,6 +10,8 @@ import ChatWidget from "@/components/ChatWidget";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { motion, AnimatePresence } from "framer-motion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export default function Index() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -20,34 +22,27 @@ export default function Index() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'payment'>('cart');
+  const [searchQuery, setSearchQuery] = useState("");
   
-  // Loyalty state
   const [pointsToUse, setPointsToUse] = useState(0);
-
   const navigate = useNavigate();
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      const offset = 80; // height of sticky nav
+      const offset = 80;
       const bodyRect = document.body.getBoundingClientRect().top;
       const elementRect = element.getBoundingClientRect().top;
       const elementPosition = elementRect - bodyRect;
       const offsetPosition = elementPosition - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth"
-      });
+      window.scrollTo({ top: offsetPosition, behavior: "smooth" });
     }
   };
 
   useEffect(() => {
     fetchData();
     const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
+    if (savedUser) setCurrentUser(JSON.parse(savedUser));
   }, []);
 
   const fetchData = async () => {
@@ -58,27 +53,25 @@ export default function Index() {
       ]);
       const prodData = await prodRes.json();
       const configData = await configRes.json();
-      
       setProducts(prodData);
       setConfig(configData);
 
-      // Apply dynamic colors
-      if (configData.accentColor) {
-        document.documentElement.style.setProperty('--primary', configData.accentColor);
-        document.documentElement.style.setProperty('--ring', configData.accentColor);
-      }
-      if (configData.backgroundColor) {
-        document.documentElement.style.setProperty('--background', configData.backgroundColor);
-      }
-      if (configData.textColor) {
-        document.documentElement.style.setProperty('--foreground', configData.textColor);
-      }
+      if (configData.accentColor) document.documentElement.style.setProperty('--primary', configData.accentColor);
+      if (configData.backgroundColor) document.documentElement.style.setProperty('--background', configData.backgroundColor);
+      if (configData.textColor) document.documentElement.style.setProperty('--foreground', configData.textColor);
     } catch (error) {
       console.error("Failed to fetch data", error);
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      p.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [products, searchQuery]);
 
   const addToCart = (product: Product) => {
     setCart(prev => [...prev, product]);
@@ -89,39 +82,14 @@ export default function Index() {
     setCart(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleCheckout = () => {
-    if (!currentUser) {
-      toast.error("Please login to complete your order");
-      navigate("/login");
-      return;
-    }
-
-    if (cart.length === 0) return;
-    setCheckoutStep('payment');
-  };
-
   const cartSubtotal = cart.reduce((sum, p) => sum + p.price, 0);
   const discountAmount = config?.loyaltySettings.enabled ? (pointsToUse / config.loyaltySettings.pointsToDollarRate) : 0;
   const finalTotal = Math.max(0, cartSubtotal - discountAmount);
 
   const finalizeOrder = async () => {
     setIsCheckingOut(true);
-
-    const items: OrderItem[] = cart.map(p => ({
-      productId: p.id,
-      name: p.name,
-      price: p.price,
-      quantity: 1
-    }));
-
-    const orderData = {
-      userId: currentUser?.id,
-      customerName: currentUser?.name || currentUser?.email,
-      customerEmail: currentUser?.email,
-      items,
-      total: cartSubtotal,
-      pointsUsed: pointsToUse,
-    };
+    const items: OrderItem[] = cart.map(p => ({ productId: p.id, name: p.name, price: p.price, quantity: 1 }));
+    const orderData = { userId: currentUser?.id, customerName: currentUser?.name || currentUser?.email, customerEmail: currentUser?.email, items, total: cartSubtotal, pointsUsed: pointsToUse };
 
     try {
       const res = await fetch("/api/orders", {
@@ -129,265 +97,173 @@ export default function Index() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
       });
-
       if (res.ok) {
         const data = await res.json();
-        toast.success("Order secured! Track it in your account.");
-        
-        // Update local user data with new points balance
+        toast.success("Order secured!");
         if (data.user) {
           localStorage.setItem("user", JSON.stringify(data.user));
           setCurrentUser(data.user);
         }
-        
         setCart([]);
         setPointsToUse(0);
         setIsCartOpen(false);
         navigate("/account");
       }
     } catch (error) {
-      toast.error("Order transmission failed. Security bypass blocked.");
+      toast.error("Order transmission failed.");
     } finally {
       setIsCheckingOut(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="h-12 w-12 border-4 border-primary border-t-transparent rounded-full" />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
-      {/* Announcement Banner */}
-      {config?.announcementText && (
-        <div className="bg-primary text-primary-foreground py-2 px-4 text-center text-xs font-bold uppercase tracking-widest animate-in fade-in slide-in-from-top duration-500">
-          {config.announcementText}
-        </div>
-      )}
+    <div className="min-h-screen bg-background text-foreground">
+      <AnimatePresence>
+        {config?.announcementText && (
+          <motion.div initial={{ y: -50 }} animate={{ y: 0 }} className="bg-primary text-primary-foreground py-2 px-4 text-center text-[10px] font-black uppercase tracking-[0.3em] z-[60] relative">
+            {config.announcementText}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="text-2xl font-black tracking-tighter text-primary italic uppercase">
-            {config?.brandName || "AETHER"}<span className="text-muted-foreground font-light not-italic ml-1">{config?.brandTagline || "STORE"}</span>
+      <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <Link to="/" className="text-2xl font-black tracking-tighter text-primary italic uppercase flex items-center gap-2">
+            <motion.div whileHover={{ rotate: 180 }} className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground text-xs not-italic">A</motion.div>
+            {config?.brandName || "AETHER"}
           </Link>
           
-          <div className="hidden md:flex items-center gap-8">
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">Home</button>
-            <button onClick={() => scrollToSection('products')} className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">Shop</button>
-            <button onClick={() => scrollToSection('about')} className="text-sm font-bold uppercase tracking-tighter hover:text-primary transition-colors">About</button>
+          <div className="hidden md:flex items-center gap-10">
+            {['Home', 'Shop', 'About'].map((item) => (
+              <button key={item} onClick={() => item === 'Home' ? window.scrollTo({ top: 0, behavior: 'smooth' }) : scrollToSection(item.toLowerCase())} className="text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors relative group">
+                {item}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+              </button>
+            ))}
           </div>
 
           <div className="flex items-center gap-4">
-            <Dialog open={isCartOpen} onOpenChange={(open) => {
-        setIsCartOpen(open);
-        if (!open) {
-          setCheckoutStep('cart');
-          setPointsToUse(0);
-        }
-      }}>
+            <div className="relative hidden lg:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input 
+                placeholder="SEARCH PROTOCOLS..." 
+                className="h-9 w-48 bg-muted/30 border-none text-[10px] font-bold pl-9 rounded-full focus-visible:ring-1"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <Dialog open={isCartOpen} onOpenChange={setIsCartOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative hover:bg-primary/5">
+                <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full h-11 w-11">
                   <ShoppingCart className="h-5 w-5" />
                   {cart.length > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
+                    <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground font-black">
                       {cart.length}
-                    </span>
+                    </motion.span>
                   )}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] bg-background border-primary/20">
+              <DialogContent className="sm:max-w-[425px] bg-background border-primary/20 rounded-[2rem]">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
-                    {checkoutStep === 'cart' ? 'Your Registry' : 'Payment Protocol'}
+                    {checkoutStep === 'cart' ? 'Registry' : 'Payment'}
                   </DialogTitle>
-                  <DialogDescription>
-                    {checkoutStep === 'cart' ? 'Items queued for acquisition.' : 'Finalize transaction via E-Transfer.'}
-                  </DialogDescription>
                 </DialogHeader>
-
                 {checkoutStep === 'cart' ? (
-                  <>
-                    <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                      {cart.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground">Registry is empty</div>
-                      ) : (
-                        cart.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between gap-4 p-3 bg-muted/30 rounded-xl">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-lg bg-background overflow-hidden border">
-                                <img src={item.image} alt="" className="w-full h-full object-cover" />
-                              </div>
-                              <div>
-                                <div className="font-bold text-sm uppercase italic">{item.name}</div>
-                                <div className="text-xs text-primary font-black">${item.price}</div>
-                              </div>
+                  <div className="space-y-6">
+                    <div className="max-h-[40vh] overflow-y-auto space-y-3 pr-2">
+                      {cart.map((item, idx) => (
+                        <motion.div layout key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-2xl border border-primary/5">
+                          <div className="flex items-center gap-3">
+                            <img src={item.image} className="w-12 h-12 rounded-xl object-cover border" />
+                            <div>
+                              <div className="font-bold text-xs uppercase italic">{item.name}</div>
+                              <div className="text-xs text-primary font-black">${item.price}</div>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={() => removeFromCart(idx)} className="text-muted-foreground hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
                           </div>
-                        ))
-                      )}
+                          <Button variant="ghost" size="icon" onClick={() => removeFromCart(idx)} className="hover:text-destructive rounded-full"><Trash2 className="h-4 w-4" /></Button>
+                        </motion.div>
+                      ))}
                     </div>
-                    {cart.length > 0 && (
-                      <div className="border-t pt-4 space-y-4">
-                        {/* Loyalty Points Redemption */}
-                        {config?.loyaltySettings.enabled && currentUser && currentUser.loyaltyPoints > 0 && (
-                          <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 text-primary">
-                                <Coins className="h-4 w-4" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Loyalty Rewards</span>
-                              </div>
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase">{currentUser.loyaltyPoints} pts available</span>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex justify-between text-[10px] font-bold uppercase">
-                                <span>Redeem Points</span>
-                                <span className="text-primary">-${discountAmount.toFixed(2)}</span>
-                              </div>
-                              <Slider 
-                                value={[pointsToUse]} 
-                                max={Math.min(currentUser.loyaltyPoints, cartSubtotal * config.loyaltySettings.pointsToDollarRate)} 
-                                step={config.loyaltySettings.pointsToDollarRate}
-                                onValueChange={(val) => setPointsToUse(val[0])}
-                              />
-                              <p className="text-[9px] text-muted-foreground text-center uppercase font-bold">
-                                Using {pointsToUse} points for a ${discountAmount.toFixed(2)} discount
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center text-xs font-bold uppercase text-muted-foreground">
-                            <span>Subtotal</span>
-                            <span>${cartSubtotal.toFixed(2)}</span>
-                          </div>
-                          {discountAmount > 0 && (
-                            <div className="flex justify-between items-center text-xs font-bold uppercase text-primary">
-                              <span>Points Discount</span>
-                              <span>-${discountAmount.toFixed(2)}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between items-center font-black uppercase italic pt-2">
-                            <span>Total Acquisition Cost</span>
-                            <span className="text-xl text-primary">${finalTotal.toFixed(2)}</span>
-                          </div>
-                        </div>
-                        <Button onClick={handleCheckout} className="w-full h-12 font-black uppercase italic rounded-xl">
-                          Proceed to Payment
-                        </Button>
+                    <div className="border-t pt-4 space-y-4">
+                      <div className="flex justify-between font-black uppercase italic">
+                        <span>Total</span>
+                        <span className="text-xl text-primary">${finalTotal.toFixed(2)}</span>
                       </div>
-                    )}
-                  </>
+                      <Button onClick={() => setCheckoutStep('payment')} className="w-full h-14 font-black uppercase italic rounded-2xl">Checkout</Button>
+                    </div>
+                  </div>
                 ) : (
-                  <div className="py-6 space-y-6">
-                    <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10 space-y-4">
-                      <div className="flex items-center gap-3 text-primary">
-                        <Info className="h-5 w-5" />
-                        <span className="font-bold uppercase tracking-tighter text-sm">E-Transfer Instructions</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        To complete your acquisition, please send the total amount to the following email address. Use your **Order ID** (provided after confirmation) as the transfer memo.
-                      </p>
-                      <div className="bg-background p-4 rounded-xl border border-dashed border-primary/20 text-center">
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Recipient Email</p>
-                        <p className="font-mono font-bold text-primary break-all">{config?.etransferEmail || "payments@aether.store"}</p>
-                      </div>
-                      <div className="flex justify-between items-center pt-2">
-                        <span className="text-xs font-bold uppercase italic">Amount Due</span>
-                        <span className="text-lg font-black text-primary">${finalTotal.toFixed(2)}</span>
-                      </div>
+                  <div className="space-y-6 py-4">
+                    <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-4">
+                      <p className="text-xs text-muted-foreground leading-relaxed">Send E-Transfer to:</p>
+                      <p className="font-mono font-bold text-primary text-center bg-background p-3 rounded-xl border border-dashed border-primary/20">{config?.etransferEmail}</p>
                     </div>
-
-                    <div className="space-y-3">
-                      <Button onClick={finalizeOrder} disabled={isCheckingOut} className="w-full h-14 font-black uppercase italic rounded-xl shadow-lg shadow-primary/20">
-                        {isCheckingOut ? "Transmitting..." : "Confirm & Send Order"}
-                      </Button>
-                      <Button variant="ghost" onClick={() => setCheckoutStep('cart')} className="w-full text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                        Back to Registry
-                      </Button>
-                    </div>
+                    <Button onClick={finalizeOrder} disabled={isCheckingOut} className="w-full h-14 font-black uppercase italic rounded-2xl">Confirm Order</Button>
                   </div>
                 )}
               </DialogContent>
             </Dialog>
+
             {currentUser ? (
-              <div className="flex items-center gap-2">
-                <Link to="/account">
-                  <Button variant="ghost" size="sm" className="font-bold uppercase tracking-tighter">
-                    {currentUser.name?.split(' ')[0] || "Profile"}
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="icon" onClick={() => {
-                  localStorage.removeItem("user");
-                  localStorage.removeItem("token");
-                  setCurrentUser(null);
-                  toast.success("Logged out");
-                }} className="hover:text-destructive">
-                  <LogOut className="h-4 w-4" />
+              <Link to="/account">
+                <Button variant="ghost" className="font-black uppercase tracking-tighter text-[10px] gap-2 hover:bg-primary/5 rounded-full px-4">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <User className="h-3 w-3" />
+                  </div>
+                  {currentUser.name?.split(' ')[0]}
                 </Button>
-              </div>
+              </Link>
             ) : (
               <Link to="/login">
-                <Button variant="ghost" size="icon" className="hover:bg-primary/5">
-                  <User className="h-5 w-5" />
-                </Button>
+                <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full h-11 w-11"><User className="h-5 w-5" /></Button>
               </Link>
             )}
           </div>
         </div>
       </nav>
 
-      {/* Dynamic Sections */}
-      <div className="flex flex-col">
+      <main>
         {config?.sections.filter(s => s.visible).map((section) => (
-          <SectionRenderer
-            key={section.id}
-            section={section}
-            products={products}
-            addToCart={addToCart}
-            scrollToSection={scrollToSection}
-          />
+          <SectionRenderer key={section.id} section={section} products={filteredProducts} addToCart={addToCart} scrollToSection={scrollToSection} />
         ))}
-      </div>
+      </main>
 
-      {/* Footer */}
-      <footer className="bg-muted/30 border-t py-24">
-        <div className="container mx-auto px-4 text-foreground">
+      <footer className="bg-muted/20 border-t py-24">
+        <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-16">
-            <div className="col-span-1 md:col-span-2 space-y-8">
-              <Link to="/" className="text-3xl font-black tracking-tighter text-primary italic uppercase">
-                {config?.brandName || "AETHER"}<span className="text-muted-foreground font-light not-italic ml-1">{config?.brandTagline || "STORE"}</span>
-              </Link>
-              <p className="text-muted-foreground max-w-sm font-medium leading-relaxed">
-                Redefining the digital shopping experience with curated products and seamless technology.
-              </p>
+            <div className="col-span-1 md:col-span-2 space-y-6">
+              <h3 className="text-2xl font-black tracking-tighter text-primary italic uppercase">{config?.brandName}</h3>
+              <p className="text-muted-foreground max-w-sm text-sm font-medium leading-relaxed">{config?.brandTagline}</p>
+              <div className="flex gap-4">
+                {config?.socialLinks.instagram && <a href={config.socialLinks.instagram} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Instagram className="h-5 w-5" /></a>}
+                {config?.socialLinks.twitter && <a href={config.socialLinks.twitter} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Twitter className="h-5 w-5" /></a>}
+                {config?.socialLinks.discord && <a href={config.socialLinks.discord} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Github className="h-5 w-5" /></a>}
+              </div>
             </div>
             <div>
-              <h4 className="font-black uppercase italic mb-8 tracking-tighter">Quick Access</h4>
-              <ul className="space-y-4 text-sm font-bold uppercase tracking-tighter text-muted-foreground">
-                <li><button onClick={() => scrollToSection('products')} className="hover:text-primary transition-colors uppercase">Neural Catalog</button></li>
-                <li><button onClick={() => scrollToSection('about')} className="hover:text-primary transition-colors uppercase">Security Protocol</button></li>
-                <li><Link to="/admin" className="hover:text-primary transition-colors">Terminal</Link></li>
+              <h4 className="font-black uppercase italic mb-6 tracking-tighter text-xs">Navigation</h4>
+              <ul className="space-y-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <li><button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-primary">Home</button></li>
+                <li><button onClick={() => scrollToSection('products')} className="hover:text-primary">Catalog</button></li>
+                <li><Link to="/admin" className="hover:text-primary">Terminal</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-black uppercase italic mb-8 tracking-tighter">Connection</h4>
-              <ul className="space-y-4 text-sm font-bold uppercase tracking-tighter text-muted-foreground">
-                <li>contact@help.com</li>
-                <li>519-111-1111</li>
+              <h4 className="font-black uppercase italic mb-6 tracking-tighter text-xs">Support</h4>
+              <ul className="space-y-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <li>contact@aether.store</li>
+                <li>Privacy Policy</li>
+                <li>Terms of Service</li>
               </ul>
             </div>
-          </div>
-          <div className="mt-24 pt-10 border-t text-center text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground opacity-50">
-            © 2025 {config?.brandName || "AETHER"} System • All protocols reserved.
           </div>
         </div>
       </footer>
@@ -396,155 +272,93 @@ export default function Index() {
   );
 }
 
-function SectionRenderer({ section, products, addToCart, scrollToSection }: { section: StorefrontSection, products: Product[], addToCart: (p: Product) => void, scrollToSection: (id: string) => void }) {
-  const [email, setEmail] = useState("");
-  const [isSubscribing, setIsSubscribing] = useState(false);
-
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    setIsSubscribing(true);
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (res.ok) {
-        toast.success("Identity registered. Welcome to the network.");
-        setEmail("");
-      }
-    } catch (error) {
-      toast.error("Signal lost. Try again later.");
-    } finally {
-      setIsSubscribing(false);
-    }
-  };
+function SectionRenderer({ section, products, addToCart, scrollToSection }: any) {
+  const containerVariants = { hidden: { opacity: 0, y: 50 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } } };
 
   switch (section.type) {
     case 'hero':
       return (
-        <section id="hero" className="relative py-20 lg:py-32 overflow-hidden bg-muted/20">
+        <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={containerVariants} className="relative py-24 lg:py-40 overflow-hidden">
           <div className="container mx-auto px-4">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div className="space-y-10 max-w-2xl">
-                <Badge variant="outline" className="px-4 py-1 text-primary border-primary/20 bg-primary/5 uppercase tracking-widest font-bold">
-                  Exclusive Drop
-                </Badge>
-                <h1 className="text-6xl lg:text-8xl font-black tracking-tighter leading-[0.9] uppercase italic">
-                  {section.title}
-                </h1>
-                <p className="text-xl text-muted-foreground leading-relaxed max-w-lg">
-                  {section.subtitle}
-                </p>
-                <div className="flex flex-col sm:flex-row gap-6 pt-4">
-                  <Button onClick={() => scrollToSection('products')} size="lg" className="h-16 px-10 text-lg font-black uppercase italic rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                    Shop Now <ArrowRight className="ml-2 h-6 w-6" />
-                  </Button>
-                  <Button onClick={() => scrollToSection('about')} size="lg" variant="outline" className="h-16 px-10 text-lg font-black uppercase italic rounded-2xl border-2 hover:bg-primary/5 transition-all active:scale-95">
-                    Explore
-                  </Button>
+            <div className="grid lg:grid-cols-2 gap-20 items-center">
+              <div className="space-y-8">
+                <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">System Online</Badge>
+                <h1 className="text-6xl lg:text-8xl font-black tracking-tighter leading-[0.85] uppercase italic">{section.title}</h1>
+                <p className="text-lg text-muted-foreground max-w-lg font-medium">{section.subtitle}</p>
+                <div className="flex gap-4 pt-4">
+                  <Button onClick={() => scrollToSection('products')} size="lg" className="h-16 px-10 text-lg font-black uppercase italic rounded-2xl shadow-2xl shadow-primary/20">Shop Now</Button>
                 </div>
               </div>
-              <div className="relative aspect-square lg:aspect-[4/5] rounded-[2.5rem] overflow-hidden shadow-2xl rotate-2 border-8 border-background bg-muted">
-                <img 
-                  src={section.image || "https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?w=1200&q=80"} 
-                  alt="" 
-                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
-              </div>
+              <motion.div whileHover={{ scale: 1.02, rotate: -1 }} className="relative aspect-square rounded-[3rem] overflow-hidden border-8 border-background shadow-2xl">
+                <img src={section.image} className="w-full h-full object-cover" />
+              </motion.div>
             </div>
           </div>
-          <div className="absolute top-1/4 -right-24 w-96 h-96 bg-primary/5 rounded-full blur-3xl -z-10" />
-          <div className="absolute bottom-1/4 -left-24 w-96 h-96 bg-primary/10 rounded-full blur-3xl -z-10" />
-        </section>
+        </motion.section>
       );
     case 'products':
       return (
-        <section id="products" className="py-24">
+        <section id="products" className="py-24 bg-muted/10">
           <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-              <div className="space-y-2">
-                <h2 className="text-4xl font-black tracking-tighter uppercase italic">{section.title}</h2>
-                <p className="text-muted-foreground font-medium">{section.subtitle}</p>
-              </div>
+            <div className="mb-16 space-y-2">
+              <h2 className="text-4xl font-black tracking-tighter uppercase italic">{section.title}</h2>
+              <p className="text-muted-foreground font-medium">{section.subtitle}</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-              {products.length === 0 ? (
-                <div className="col-span-full py-20 text-center border-2 border-dashed rounded-[2.5rem] bg-muted/30">
-                  <p className="text-muted-foreground font-bold uppercase tracking-widest">No products in current frequency.</p>
-                </div>
-              ) : (
-                products.map((product) => (
-                  <div key={product.id} className="group relative bg-background rounded-[2rem] border overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-primary/5">
-                    <div className="aspect-[4/5] overflow-hidden bg-muted">
-                      <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                    </div>
-                    <div className="p-8">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{product.category}</span>
-                        <span className="text-xl font-black text-primary italic">${product.price}</span>
-                      </div>
-                      <h3 className="text-2xl font-black mb-3 tracking-tighter group-hover:text-primary transition-colors uppercase italic">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-8 leading-relaxed font-medium">{product.description}</p>
-                      <Button onClick={() => addToCart(product)} className="w-full rounded-2xl h-14 font-black uppercase italic text-base tracking-tighter" variant="outline">
-                        Add to Registry
-                      </Button>
-                    </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {products.map((p: any) => (
+                <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={p.id} className="group bg-background rounded-[2.5rem] border border-primary/5 overflow-hidden hover:shadow-2xl transition-all duration-500">
+                  <div className="aspect-[4/5] overflow-hidden bg-muted">
+                    <img src={p.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                   </div>
-                ))
-              )}
+                  <div className="p-8 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{p.category}</span>
+                      <span className="text-xl font-black text-primary italic">${p.price}</span>
+                    </div>
+                    <h3 className="text-2xl font-black uppercase italic tracking-tighter">{p.name}</h3>
+                    <Button onClick={() => addToCart(p)} className="w-full h-14 rounded-2xl font-black uppercase italic" variant="outline">Add to Registry</Button>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
         </section>
       );
-    case 'about':
+    case 'faq':
       return (
-        <section id="about" className="py-24 bg-primary text-primary-foreground overflow-hidden relative">
-          <div className="container mx-auto px-4 flex flex-col items-center text-center space-y-8 relative z-10">
-            <Info className="h-12 w-12 opacity-50 mb-4" />
-            <h2 className="text-5xl lg:text-7xl font-black tracking-tighter uppercase italic">{section.title}</h2>
-            <p className="text-xl lg:text-2xl max-w-3xl opacity-90 leading-relaxed italic">{section.content}</p>
+        <section id="faq" className="py-24">
+          <div className="container mx-auto px-4 max-w-3xl">
+            <div className="text-center mb-16 space-y-2">
+              <h2 className="text-4xl font-black tracking-tighter uppercase italic">{section.title}</h2>
+              <p className="text-muted-foreground font-medium">{section.subtitle}</p>
+            </div>
+            <Accordion type="single" collapsible className="space-y-4">
+              {section.items?.map((item: any, i: number) => (
+                <AccordionItem key={i} value={`item-${i}`} className="border rounded-3xl px-6 bg-muted/20">
+                  <AccordionTrigger className="text-sm font-black uppercase italic hover:no-underline">{item.q}</AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground font-medium leading-relaxed">{item.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
         </section>
       );
     case 'newsletter':
       return (
-        <section id="newsletter" className="py-24">
+        <section className="py-24">
           <div className="container mx-auto px-4">
-            <div className="bg-muted/50 rounded-[3rem] p-12 lg:p-24 flex flex-col lg:flex-row items-center justify-between gap-12 border border-primary/5 relative overflow-hidden">
-               <div className="space-y-6 max-w-xl text-center lg:text-left z-10">
-                  <h2 className="text-5xl lg:text-7xl font-black tracking-tighter uppercase italic leading-none">{section.title}</h2>
-                  <p className="text-xl text-muted-foreground italic">{section.subtitle}</p>
-               </div>
-               <form onSubmit={handleSubscribe} className="flex w-full lg:w-auto gap-4 z-10">
-                  <Input
-                    placeholder="terminal@aether.store"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-16 rounded-2xl bg-background border-none text-lg px-8 lg:w-80 shadow-inner"
-                  />
-                  <Button type="submit" disabled={isSubscribing} className="h-16 px-10 rounded-2xl font-black uppercase italic text-lg shadow-xl shadow-primary/20">
-                    {isSubscribing ? "Encrypting..." : "Subscribe"}
-                  </Button>
-               </form>
-               <Mail className="absolute -bottom-24 -right-24 h-96 w-96 text-primary/5 rotate-12" />
+            <div className="bg-primary rounded-[3rem] p-12 lg:p-24 text-primary-foreground text-center space-y-8 relative overflow-hidden">
+              <h2 className="text-5xl lg:text-7xl font-black tracking-tighter uppercase italic z-10 relative">{section.title}</h2>
+              <p className="text-xl opacity-80 italic z-10 relative">{section.subtitle}</p>
+              <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto z-10 relative">
+                <Input placeholder="EMAIL@SYSTEM.COM" className="h-16 rounded-2xl bg-white/10 border-white/20 text-white placeholder:text-white/50 px-8" />
+                <Button className="h-16 px-10 rounded-2xl bg-white text-primary font-black uppercase italic hover:bg-white/90">Join</Button>
+              </div>
+              <Mail className="absolute -bottom-20 -right-20 h-80 w-80 opacity-10 rotate-12" />
             </div>
           </div>
         </section>
       );
-    case 'banner':
-      return (
-        <div className="bg-primary py-4 text-center text-primary-foreground font-black uppercase italic tracking-widest text-lg">
-          {section.title}
-        </div>
-      );
-    default:
-      return null;
+    default: return null;
   }
 }
