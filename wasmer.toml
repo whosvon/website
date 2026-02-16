@@ -1,0 +1,27 @@
+[package]
+name = "aether-store"
+version = "0.1.0"
+description = "Aether Store Full-Stack Application"
+
+[[module]]
+name = "server"
+source = "dist/server/production.mjs"
+abi = "wasi"
+
+[dependencies]
+"node" = "18.16.0"
+
+[[command]]
+name = "start"
+module = "server"
+runner = "https://webc.org/runner/node"
+
+[command.annotations]
+wasi.env = ["NODE_ENV=production", "PORT=8080"]
+
+[fs]
+"/dist" = "dist"
+
+[[http_server]]
+command = "start"
+port = 8080
