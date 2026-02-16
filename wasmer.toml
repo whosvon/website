@@ -8,9 +8,6 @@ name = "server"
 source = "dist/server/production.mjs"
 abi = "wasi"
 
-[dependencies]
-"node" = "18.16.0"
-
 [[command]]
 name = "start"
 module = "server"

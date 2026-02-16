@@ -5,20 +5,24 @@ import * as express from "express";
 import fs from "fs";
 
 const app = createServer();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
 // Robust path resolution for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// In production, serve the built SPA files
-// We look for 'spa' relative to the 'dist/server' directory
+// In Wasmer/Production, we expect the SPA to be in /dist/spa
+// We use absolute paths to avoid issues with the working directory
 const distPath = path.resolve(__dirname, "../spa");
 
+console.log(`🚀 Starting Aether Server...`);
 console.log(`📂 Static files directory: ${distPath}`);
 
-// Verify directory exists
-if (!fs.existsSync(distPath)) {
+// Verify directory exists and log contents for debugging
+if (fs.existsSync(distPath)) {
+  const files = fs.readdirSync(distPath);
+  console.log(`✅ Found ${files.length} files in SPA directory.`);
+} else {
   console.error(`❌ Error: Static directory not found at ${distPath}`);
 }
 
@@ -42,11 +46,11 @@ app.get("*", (req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(404).send("Frontend build not found. Please run 'npm run build' first.");
+    res.status(404).send(`Frontend build not found at ${indexPath}. Please ensure 'npm run build' was executed.`);
   }
 });
 
-app.listen(port, () => {
+app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Aether server running on port ${port}`);
   console.log(`📱 Mode: ${process.env.NODE_ENV || 'development'}`);
 });
