@@ -8,6 +8,13 @@ export interface User {
   createdAt: string;
 }
 
+export interface AuthResponse {
+  success: boolean;
+  token: string;
+  user: User;
+  message?: string;
+}
+
 export interface ChatMessage {
   id: string;
   senderId: string;

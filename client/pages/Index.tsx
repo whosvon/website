@@ -10,7 +10,7 @@ import ChatWidget from "@/components/ChatWidget";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -466,7 +466,14 @@ export default function Index() {
 }
 
 function SectionRenderer({ section, products, addToCart, scrollToSection }: any) {
-  const containerVariants = { hidden: { opacity: 0, y: 50 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } } };
+  const containerVariants: Variants = { 
+    hidden: { opacity: 0, y: 50 }, 
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { duration: 0.8, ease: "easeOut" } 
+    } 
+  };
 
   switch (section.type) {
     case 'hero':
@@ -544,7 +551,7 @@ function SectionRenderer({ section, products, addToCart, scrollToSection }: any)
               <h2 className="text-5xl lg:text-7xl font-black tracking-tighter uppercase italic z-10 relative">{section.title}</h2>
               <p className="text-xl opacity-80 italic z-10 relative">{section.subtitle}</p>
               <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto z-10 relative">
-                <Input placeholder="EMAIL@SYSTEM.COM" className="h-16 rounded-2xl bg-white/10 border-white/20 text-white placeholder:text-white/50 px-8" />
+                <input placeholder="EMAIL@SYSTEM.COM" className="h-16 rounded-2xl bg-white/10 border-white/20 text-white placeholder:text-white/50 px-8 w-full" />
                 <Button className="h-16 px-10 rounded-2xl bg-white text-primary font-black uppercase italic hover:bg-white/90">Join</Button>
               </div>
               <Mail className="absolute -bottom-20 -right-20 h-80 w-80 opacity-10 rotate-12" />
