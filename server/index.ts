@@ -6,6 +6,7 @@ import { getOrders, createOrder, getMyOrders, updateOrder } from "./routes/order
 import { handleLogin, handleRegister, handleCustomerLogin, handleGoogleLogin, getUsers, createStaff, updateStaff, deleteStaff } from "./routes/auth";
 import { getConfig, updateConfig } from "./routes/config";
 import { getMessages, sendMessage, markAsRead } from "./routes/chat";
+import { productRequests } from "./db";
 
 export function createServer() {
   const app = express();
@@ -32,6 +33,39 @@ export function createServer() {
   app.get("/api/chat", getMessages);
   app.post("/api/chat", sendMessage);
   app.post("/api/chat/read", markAsRead);
+
+  app.get("/api/requests", (req, res) => {
+    res.json(productRequests);
+  });
+
+  app.post("/api/requests", (req, res) => {
+    const { customerName, customerEmail, requestText } = req.body;
+    if (!customerName || !customerEmail || !requestText) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+    const newRequest = {
+      id: Math.random().toString(36).substr(2, 9),
+      customerName,
+      customerEmail,
+      requestText,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    productRequests.push(newRequest as any);
+    res.status(201).json(newRequest);
+  });
+
+  app.put("/api/requests/:id", (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const index = productRequests.findIndex(r => r.id === id);
+    if (index !== -1) {
+      productRequests[index].status = status;
+      res.json(productRequests[index]);
+    } else {
+      res.status(404).json({ message: "Request not found" });
+    }
+  });
 
   app.get("/api/users", getUsers);
   app.post("/api/staff", createStaff);

@@ -30,6 +30,15 @@ export interface ChatMessage {
   read: boolean;
 }
 
+export interface ProductRequest {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  requestText: string;
+  status: 'pending' | 'reviewed' | 'fulfilled';
+  createdAt: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -71,7 +80,7 @@ export interface Order {
 
 export interface StorefrontSection {
   id: string;
-  type: 'hero' | 'products' | 'about' | 'newsletter' | 'banner' | 'faq' | 'gallery' | 'testimonials';
+  type: 'hero' | 'products' | 'about' | 'newsletter' | 'banner' | 'faq' | 'gallery' | 'testimonials' | 'requests';
   title?: string;
   subtitle?: string;
   content?: string;
@@ -132,6 +141,7 @@ export interface StorefrontConfig {
   announcementText?: string;
   etransferEmail?: string;
   maintenanceMode: boolean;
+  requestFeatureEnabled: boolean;
   headerSettings: HeaderSettings;
   footerSettings: FooterSettings;
   socialLinks: SocialLinks;

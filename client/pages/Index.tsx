@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Ghost, Github, ChevronDown, Truck, MapPin, CreditCard, Phone, CheckCircle2, Copy, Settings, Sparkles } from "lucide-react";
+import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Ghost, Github, ChevronDown, Truck, MapPin, CreditCard, Phone, CheckCircle2, Copy, Settings, Sparkles, ClipboardList, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -31,6 +31,10 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
+  // Request State
+  const [requestForm, setRequestForm] = useState({ name: "", email: "", text: "" });
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  
   // Checkout State
   const [shippingMethod, setShippingMethod] = useState<'pickup' | 'delivery'>('delivery');
   const [paymentMethod, setPaymentMethod] = useState<'etransfer' | 'on_arrival'>('etransfer');
@@ -59,6 +63,7 @@ export default function Index() {
       const user = JSON.parse(savedUser);
       setCurrentUser(user);
       setCustomerDetails(prev => ({ ...prev, name: user.name || "", phone: user.phone || "" }));
+      setRequestForm(prev => ({ ...prev, name: user.name || "", email: user.email || "" }));
     }
   }, []);
 
@@ -97,6 +102,32 @@ export default function Index() {
 
   const removeFromCart = (index: number) => {
     setCart(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRequestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestForm.text.trim()) return;
+    
+    setIsSubmittingRequest(true);
+    try {
+      const res = await fetch("/api/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: requestForm.name,
+          customerEmail: requestForm.email,
+          requestText: requestForm.text
+        }),
+      });
+      if (res.ok) {
+        toast.success("Request transmitted to procurement.");
+        setRequestForm(prev => ({ ...prev, text: "" }));
+      }
+    } catch (error) {
+      toast.error("Transmission failed.");
+    } finally {
+      setIsSubmittingRequest(false);
+    }
   };
 
   // Calculations
@@ -208,13 +239,14 @@ export default function Index() {
     else if (s.type === 'products') label = "Store";
     else if (s.type === 'faq') label = "Support";
     else if (s.type === 'newsletter') label = "Join";
+    else if (s.type === 'requests') label = "Request";
     
     return {
       id: s.id,
       label: label,
       type: s.type
     };
-  }).filter(l => ['Home', 'Store', 'Support', 'Join'].includes(l.label)) || [];
+  }).filter(l => ['Home', 'Store', 'Support', 'Join', 'Request'].includes(l.label)) || [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -585,7 +617,18 @@ export default function Index() {
 
       <main>
         {config?.sections.filter(s => s.visible).map((section) => (
-          <SectionRenderer key={section.id} section={section} products={filteredProducts} addToCart={addToCart} scrollToSection={scrollToSection} />
+          <SectionRenderer 
+            key={section.id} 
+            section={section} 
+            products={filteredProducts} 
+            addToCart={addToCart} 
+            scrollToSection={scrollToSection}
+            requestForm={requestForm}
+            setRequestForm={setRequestForm}
+            handleRequestSubmit={handleRequestSubmit}
+            isSubmittingRequest={isSubmittingRequest}
+            requestFeatureEnabled={config.requestFeatureEnabled}
+          />
         ))}
       </main>
 
@@ -636,7 +679,7 @@ export default function Index() {
   );
 }
 
-function SectionRenderer({ section, products, addToCart, scrollToSection }: any) {
+function SectionRenderer({ section, products, addToCart, scrollToSection, requestForm, setRequestForm, handleRequestSubmit, isSubmittingRequest, requestFeatureEnabled }: any) {
   const containerVariants: Variants = { 
     hidden: { opacity: 0, y: 50 }, 
     visible: { 
@@ -697,6 +740,54 @@ function SectionRenderer({ section, products, addToCart, scrollToSection }: any)
                   </div>
                 </motion.div>
               ))}
+            </div>
+          </div>
+        </section>
+      );
+    case 'requests':
+      if (!requestFeatureEnabled) return null;
+      return (
+        <section id={section.id} className="py-24">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto bg-muted/30 rounded-[3rem] p-8 lg:p-16 border border-primary/5">
+              <div className="grid lg:grid-cols-2 gap-16 items-center">
+                <div className="space-y-6">
+                  <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center text-primary">
+                    <ClipboardList className="h-8 w-8" />
+                  </div>
+                  <h2 className="text-4xl font-black tracking-tighter uppercase italic leading-none">{section.title}</h2>
+                  <p className="text-muted-foreground font-medium">{section.subtitle}</p>
+                </div>
+                <form onSubmit={handleRequestSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input 
+                      placeholder="NAME" 
+                      value={requestForm.name} 
+                      onChange={e => setRequestForm({...requestForm, name: e.target.value})} 
+                      className="h-14 bg-background border-none rounded-2xl font-bold uppercase italic" 
+                      required 
+                    />
+                    <Input 
+                      type="email" 
+                      placeholder="EMAIL" 
+                      value={requestForm.email} 
+                      onChange={e => setRequestForm({...requestForm, email: e.target.value})} 
+                      className="h-14 bg-background border-none rounded-2xl font-bold uppercase italic" 
+                      required 
+                    />
+                  </div>
+                  <Textarea 
+                    placeholder="DESCRIBE THE PROTOCOL OR ITEM YOU REQUIRE..." 
+                    value={requestForm.text} 
+                    onChange={e => setRequestForm({...requestForm, text: e.target.value})} 
+                    className="bg-background border-none rounded-[2rem] min-h-[150px] p-6 font-medium" 
+                    required 
+                  />
+                  <Button type="submit" disabled={isSubmittingRequest} className="w-full h-16 rounded-2xl font-black uppercase italic text-lg gap-2">
+                    {isSubmittingRequest ? "Transmitting..." : <><Send className="h-5 w-5" /> Submit Request</>}
+                  </Button>
+                </form>
+              </div>
             </div>
           </div>
         </section>

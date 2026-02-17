@@ -1,4 +1,4 @@
-import { Product, Order, StorefrontConfig, User, ChatMessage, ThemePreset } from "@shared/api";
+import { Product, Order, StorefrontConfig, User, ChatMessage, ThemePreset, ProductRequest } from "@shared/api";
 
 export const products: Product[] = [
   {
@@ -25,6 +25,7 @@ export const products: Product[] = [
 
 export const orders: Order[] = [];
 export const chatMessages: ChatMessage[] = [];
+export const productRequests: ProductRequest[] = [];
 
 export const themePresets: ThemePreset[] = [
   { id: 'aether', name: 'Aether (Purple)', primary: '262 83% 58%', background: '0 0% 100%', foreground: '240 10% 3.9%' },
@@ -59,6 +60,7 @@ export let storefrontConfig: StorefrontConfig = {
   announcementText: "SYSTEM UPDATE: NEW INVENTORY DETECTED.",
   etransferEmail: "payments@aether.store",
   maintenanceMode: false,
+  requestFeatureEnabled: true,
   headerSettings: {
     showSearch: true,
     showCart: true,
@@ -100,6 +102,13 @@ export let storefrontConfig: StorefrontConfig = {
       type: "products",
       title: "Neural Catalog",
       subtitle: "Browse our latest hardware and software drops.",
+      visible: true
+    },
+    {
+      id: "requests-1",
+      type: "requests",
+      title: "Custom Protocol Request",
+      subtitle: "Can't find what you're looking for? Submit a request to our procurement team.",
       visible: true
     },
     {

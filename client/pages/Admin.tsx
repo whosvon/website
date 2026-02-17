@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap, Download, Eraser, FileText, Instagram, Twitter, Facebook, Ghost } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap, Download, Eraser, FileText, Instagram, Twitter, Facebook, Ghost, Github, ClipboardList, TrendingUp, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Product, Order, StorefrontConfig, User, ChatMessage, StorefrontSection, Permission, ThemePreset } from "@shared/api";
+import { Product, Order, StorefrontConfig, User, ChatMessage, StorefrontSection, Permission, ThemePreset, ProductRequest } from "@shared/api";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,7 @@ export default function Admin() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [requests, setRequests] = useState<ProductRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -84,20 +85,22 @@ export default function Admin() {
 
   const fetchData = async (isInitial: boolean) => {
     try {
-      const [prodRes, ordRes, configRes, usersRes, chatRes] = await Promise.all([
-        fetch("/api/products"), fetch("/api/orders"), fetch("/api/config"), fetch("/api/users"), fetch("/api/chat")
+      const [prodRes, ordRes, configRes, usersRes, chatRes, reqRes] = await Promise.all([
+        fetch("/api/products"), fetch("/api/orders"), fetch("/api/config"), fetch("/api/users"), fetch("/api/chat"), fetch("/api/requests")
       ]);
       const prodData = await prodRes.json();
       const ordData = await ordRes.json();
       const configData = await configRes.json();
       const userData = await usersRes.json();
       const chatData = await chatRes.json();
+      const reqData = await reqRes.json();
 
       setProducts(prodData);
       setOrders(ordData);
       setConfig(configData);
       setMessages(chatData);
       setAllUsers(userData);
+      setRequests(reqData);
 
       if (isInitial) {
         setConfigForm(configData);
@@ -126,6 +129,22 @@ export default function Admin() {
       }
     } catch (error) {
       toast.error("Failed to update order status.");
+    }
+  };
+
+  const handleUpdateRequestStatus = async (requestId: string, status: string) => {
+    try {
+      const res = await fetch(`/api/requests/${requestId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        toast.success(`Request marked as ${status}.`);
+        fetchData(false);
+      }
+    } catch (error) {
+      toast.error("Failed to update request status.");
     }
   };
 
@@ -359,6 +378,65 @@ export default function Admin() {
     toast.success("Financial report generated.");
   };
 
+  const handleDownloadInventoryReport = () => {
+    const doc = new jsPDF();
+    const brandName = config?.brandName || "AETHER SYSTEMS";
+    
+    doc.setFontSize(22);
+    doc.text(`${brandName} - INVENTORY INTELLIGENCE`, 14, 22);
+    
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 32);
+    
+    // Calculate sales velocity
+    const salesMap = new Map<string, number>();
+    orders.forEach(o => {
+      o.items.forEach(item => {
+        salesMap.set(item.productId, (salesMap.get(item.productId) || 0) + item.quantity);
+      });
+    });
+
+    const tableData = products.map(p => {
+      const sold = salesMap.get(p.id) || 0;
+      return [
+        p.name,
+        p.category,
+        p.stock,
+        sold,
+        sold > 0 ? (sold / products.length).toFixed(2) : "0.00", // Mock velocity
+        p.stock < 10 ? "LOW" : "OPTIMAL"
+      ];
+    });
+    
+    autoTable(doc, {
+      startY: 45,
+      head: [['Product', 'Category', 'Current Stock', 'Units Sold', 'Velocity', 'Status']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [109, 40, 217] },
+    });
+    
+    const finalY = (doc as any).lastAutoTable.finalY || 150;
+    doc.setFontSize(12);
+    doc.text("TOP PERFORMERS", 14, finalY + 20);
+    
+    const topSellers = [...salesMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([id, qty]) => {
+        const p = products.find(prod => prod.id === id);
+        return `${p?.name || id}: ${qty} units`;
+      });
+
+    doc.setFontSize(10);
+    topSellers.forEach((text, i) => {
+      doc.text(text, 14, finalY + 30 + (i * 5));
+    });
+    
+    doc.save(`${brandName.toLowerCase().replace(/\s+/g, '-')}-inventory-report.pdf`);
+    toast.success("Inventory report generated.");
+  };
+
   const chartData = orders.slice(-7).map(o => ({
     date: new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     total: o.total
@@ -410,48 +488,53 @@ export default function Admin() {
             <h2 className="text-4xl font-black tracking-tighter uppercase italic">Control Center</h2>
             <p className="text-muted-foreground font-medium">System status and configuration.</p>
           </div>
-          {hasPermission('products') && (
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="h-12 px-8 rounded-2xl font-black uppercase italic">
-                  <Plus className="h-4 w-4 mr-2" /> Add Product
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px] rounded-[2rem]">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">New Protocol</DialogTitle>
-                  <DialogDescription>Add a new product to the neural catalog.</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleAddProduct} className="space-y-6 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase">Name</Label>
-                      <Input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} required className="bg-muted/30" />
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleDownloadInventoryReport} className="h-12 px-6 rounded-2xl font-black uppercase italic text-[10px] gap-2">
+              <TrendingUp className="h-4 w-4" /> Inventory Report
+            </Button>
+            {hasPermission('products') && (
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="h-12 px-8 rounded-2xl font-black uppercase italic">
+                    <Plus className="h-4 w-4 mr-2" /> Add Product
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px] rounded-[2rem]">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">New Protocol</DialogTitle>
+                    <DialogDescription>Add a new product to the neural catalog.</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleAddProduct} className="space-y-6 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase">Name</Label>
+                        <Input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} required className="bg-muted/30" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase">Price ($)</Label>
+                        <Input type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} required className="bg-muted/30" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase">Category</Label>
+                        <Input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="bg-muted/30" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase">Stock</Label>
+                        <Input type="number" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="bg-muted/30" />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase">Price ($)</Label>
-                      <Input type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} required className="bg-muted/30" />
+                      <Label className="text-[10px] font-black uppercase">Image</Label>
+                      <ImageUpload value={newProduct.image} onChange={val => setNewProduct({...newProduct, image: val})} />
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase">Category</Label>
-                      <Input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="bg-muted/30" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase">Stock</Label>
-                      <Input type="number" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="bg-muted/30" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase">Image</Label>
-                    <ImageUpload value={newProduct.image} onChange={val => setNewProduct({...newProduct, image: val})} />
-                  </div>
-                  <Button type="submit" className="w-full h-14 rounded-2xl font-black uppercase italic">Initialize Product</Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
+                    <Button type="submit" className="w-full h-14 rounded-2xl font-black uppercase italic">Initialize Product</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -500,6 +583,7 @@ export default function Admin() {
             {hasPermission('orders') && <TabsTrigger value="orders" className="rounded-xl px-8 font-black uppercase italic text-xs">Orders</TabsTrigger>}
             {hasPermission('points') && <TabsTrigger value="points" className="rounded-xl px-8 font-black uppercase italic text-xs">Points</TabsTrigger>}
             {hasPermission('chat') && <TabsTrigger value="messages" className="rounded-xl px-8 font-black uppercase italic text-xs">Messages</TabsTrigger>}
+            <TabsTrigger value="requests" className="rounded-xl px-8 font-black uppercase italic text-xs">Requests</TabsTrigger>
             {hasPermission('settings') && <TabsTrigger value="editor" className="rounded-xl px-8 font-black uppercase italic text-xs">Builder</TabsTrigger>}
             {hasPermission('staff') && <TabsTrigger value="staff" className="rounded-xl px-8 font-black uppercase italic text-xs">Staff</TabsTrigger>}
             <TabsTrigger value="security" className="rounded-xl px-8 font-black uppercase italic text-xs">Security</TabsTrigger>
@@ -526,7 +610,12 @@ export default function Admin() {
                       </TableCell>
                       <TableCell><Badge variant="outline" className="text-[9px] uppercase font-black">{p.category}</Badge></TableCell>
                       <TableCell className="font-black text-primary">${p.price}</TableCell>
-                      <TableCell className="font-mono text-xs">{p.stock}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <div className="flex items-center gap-2">
+                          {p.stock}
+                          {p.stock < 10 && <AlertTriangle className="h-3 w-3 text-destructive" />}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button variant="ghost" size="icon" onClick={() => { setEditingProduct(p); setIsEditDialogOpen(true); }} className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary"><Pencil className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteProduct(p.id)} className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -722,18 +811,70 @@ export default function Admin() {
             </div>
           </TabsContent>
 
+          <TabsContent value="requests" className="space-y-4">
+            <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-none">
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Date</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Customer</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Request</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Status</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {requests.map((r) => (
+                    <TableRow key={r.id} className="border-primary/5 hover:bg-primary/5 transition-colors">
+                      <TableCell className="text-[10px] font-bold text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="font-bold uppercase italic text-xs">
+                        <div>{r.customerName}</div>
+                        <div className="text-[9px] opacity-50 lowercase">{r.customerEmail}</div>
+                      </TableCell>
+                      <TableCell className="text-xs max-w-xs truncate">{r.requestText}</TableCell>
+                      <TableCell>
+                        <Badge variant={r.status === 'fulfilled' ? 'default' : r.status === 'reviewed' ? 'secondary' : 'outline'} className="text-[9px] uppercase font-black">
+                          {r.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Select value={r.status} onValueChange={(val) => handleUpdateRequestStatus(r.id, val)}>
+                          <SelectTrigger className="h-8 w-32 text-[10px] font-black uppercase italic">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="reviewed">Reviewed</SelectItem>
+                            <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="editor" className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-4 space-y-6">
                 <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
                   <CardHeader><CardTitle className="text-xs font-black uppercase tracking-widest">System Status</CardTitle></CardHeader>
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 space-y-4">
                     <div className="flex items-center justify-between p-4 bg-destructive/5 rounded-2xl border border-destructive/10">
                       <div className="space-y-0.5">
                         <Label className="text-xs font-black uppercase italic flex items-center gap-2"><ShieldAlert className="h-3 w-3" /> Maintenance Mode</Label>
                         <p className="text-[10px] text-muted-foreground">Take the store offline.</p>
                       </div>
                       <Switch checked={configForm?.maintenanceMode} onCheckedChange={(val) => setConfigForm(prev => prev ? {...prev, maintenanceMode: val} : null)} />
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                      <div className="space-y-0.5">
+                        <Label className="text-xs font-black uppercase italic flex items-center gap-2"><ClipboardList className="h-3 w-3" /> Product Requests</Label>
+                        <p className="text-[10px] text-muted-foreground">Allow customers to request items.</p>
+                      </div>
+                      <Switch checked={configForm?.requestFeatureEnabled} onCheckedChange={(val) => setConfigForm(prev => prev ? {...prev, requestFeatureEnabled: val} : null)} />
                     </div>
                   </CardContent>
                 </Card>
