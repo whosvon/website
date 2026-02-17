@@ -1,6 +1,28 @@
 import { Product, Order, StorefrontConfig, User, ChatMessage, ThemePreset } from "@shared/api";
 
-export const products: Product[] = [];
+export const products: Product[] = [
+  {
+    id: "prod-1",
+    name: "Aether Neural Link",
+    description: "High-speed interface for direct digital interaction.",
+    price: 299.99,
+    image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=80",
+    category: "Hardware",
+    stock: 50,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "prod-2",
+    name: "Cyber Deck v4",
+    description: "Portable workstation for the modern nomad.",
+    price: 899.99,
+    image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80",
+    category: "Hardware",
+    stock: 12,
+    createdAt: new Date().toISOString()
+  }
+];
+
 export const orders: Order[] = [];
 export const chatMessages: ChatMessage[] = [];
 
@@ -60,7 +82,7 @@ export let storefrontConfig: StorefrontConfig = {
   shippingSettings: {
     freeShippingThreshold: 150,
     flatRate: 17.99,
-    taxRate: 13, // Default 13%
+    taxRate: 13,
     pickupLocation: "123 Aether Way, Toronto, ON",
     allowPayOnArrival: true
   },
