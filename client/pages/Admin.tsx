@@ -42,14 +42,9 @@ export default function Admin() {
   const [selectedIntelUser, setSelectedIntelUser] = useState<User | null>(null);
   const [userSearch, setUserSearch] = useState("");
 
-  // Security Logs State
-  const [securityLogs, setSecurityLogs] = useState([
-    { event: "Admin Login Verified", ip: "192.168.1.1", time: new Date().toLocaleString(), status: "success" },
-    { event: "Suspicious SQL Pattern Blocked", ip: "45.22.11.9", time: new Date(Date.now() - 900000).toLocaleString(), status: "blocked" },
-    { event: "Brute Force Attempt Mitigated", ip: "103.4.2.11", time: new Date(Date.now() - 3600000).toLocaleString(), status: "blocked" },
-    { event: "System Config Updated", ip: "192.168.1.1", time: new Date(Date.now() - 10800000).toLocaleString(), status: "success" },
-    { event: "New Staff Member Initialized", ip: "192.168.1.1", time: new Date(Date.now() - 18000000).toLocaleString(), status: "success" }
-  ]);
+  // Security Logs State - Initialized to empty for a fresh site
+  const [securityLogs, setSecurityLogs] = useState<{event: string, ip: string, time: string, status: string}[]>([]);
+  const [threatsBlocked, setThreatsBlocked] = useState(0);
 
   // Staff State
   const [isStaffDialogOpen, setIsStaffDialogOpen] = useState(false);
@@ -108,6 +103,13 @@ export default function Admin() {
 
       if (isInitial) {
         setConfigForm(configData);
+        // Add a single log for the current admin session
+        setSecurityLogs([{ 
+          event: "Admin Session Initialized", 
+          ip: "Local Terminal", 
+          time: new Date().toLocaleString(), 
+          status: "success" 
+        }]);
       }
     } catch (error) {
       if (isInitial) toast.error("Data retrieval failed.");
@@ -308,6 +310,7 @@ export default function Admin() {
   const handleClearLogs = () => {
     if (confirm("Are you sure you want to clear all security logs? This action cannot be undone.")) {
       setSecurityLogs([]);
+      setThreatsBlocked(0);
       toast.success("Security logs cleared.");
     }
   };
@@ -1383,7 +1386,7 @@ export default function Admin() {
                   <Activity className="h-8 w-8 text-primary" />
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Threats Blocked</p>
-                    <h3 className="text-xl font-black italic text-primary uppercase">1,242</h3>
+                    <h3 className="text-xl font-black italic text-primary uppercase">{threatsBlocked}</h3>
                   </div>
                 </CardContent>
               </Card>
