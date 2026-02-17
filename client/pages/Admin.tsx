@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,6 +24,7 @@ export default function Admin() {
   const [users, setUsers] = useState<User[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -43,8 +44,12 @@ export default function Admin() {
   useEffect(() => {
     const token = localStorage.getItem("admin-token");
     if (!token) { navigate("/login"); return; }
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
+    
+    // Initial fetch
+    fetchData(true);
+    
+    // Background refresh for live data (orders, messages, etc)
+    const interval = setInterval(() => fetchData(false), 5000);
     return () => clearInterval(interval);
   }, [navigate]);
 
@@ -54,7 +59,7 @@ export default function Admin() {
     }
   }, [messages, selectedChatUser]);
 
-  const fetchData = async () => {
+  const fetchData = async (isInitial: boolean) => {
     try {
       const [prodRes, ordRes, configRes, usersRes, chatRes] = await Promise.all([
         fetch("/api/products"), fetch("/api/orders"), fetch("/api/config"), fetch("/api/users"), fetch("/api/chat")
@@ -68,13 +73,17 @@ export default function Admin() {
       setProducts(prodData);
       setOrders(ordData);
       setConfig(configData);
-      setConfigForm(configData);
       setMessages(chatData);
       setUsers(userData.filter((u: User) => u.role === 'customer'));
+
+      // Only update the form if it's the first load or if we're not currently editing
+      if (isInitial) {
+        setConfigForm(configData);
+      }
     } catch (error) {
-      toast.error("Data retrieval failed.");
+      if (isInitial) toast.error("Data retrieval failed.");
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
@@ -87,7 +96,7 @@ export default function Admin() {
       });
       if (res.ok) {
         toast.success(`Order ${orderId} marked as ${status}.`);
-        fetchData();
+        fetchData(false);
       }
     } catch (error) {
       toast.error("Failed to update order status.");
@@ -114,7 +123,7 @@ export default function Admin() {
       });
       if (res.ok) {
         setReplyText("");
-        fetchData();
+        fetchData(false);
       }
     } catch (error) {
       toast.error("Failed to send reply.");
@@ -133,7 +142,7 @@ export default function Admin() {
         toast.success("Product added to inventory.");
         setIsAddDialogOpen(false);
         setNewProduct({ name: "", price: 0, category: "General", stock: 0, description: "", image: "" });
-        fetchData();
+        fetchData(false);
       }
     } catch (error) {
       toast.error("Failed to add product.");
@@ -152,7 +161,7 @@ export default function Admin() {
       if (res.ok) {
         toast.success("Product updated.");
         setIsEditDialogOpen(false);
-        fetchData();
+        fetchData(false);
       }
     } catch (error) {
       toast.error("Update failed.");
@@ -165,7 +174,7 @@ export default function Admin() {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
       if (res.ok) {
         toast.success("Product removed.");
-        fetchData();
+        fetchData(false);
       }
     } catch (error) {
       toast.error("Deletion failed.");
@@ -175,6 +184,7 @@ export default function Admin() {
   const handleUpdateConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!configForm) return;
+    setIsSaving(true);
     try {
       const res = await fetch("/api/config", {
         method: "POST",
@@ -182,11 +192,15 @@ export default function Admin() {
         body: JSON.stringify(configForm),
       });
       if (res.ok) {
+        const updatedConfig = await res.json();
         toast.success("Configuration updated.");
-        setConfig(await res.json());
+        setConfig(updatedConfig);
+        setConfigForm(updatedConfig);
       }
     } catch (error) {
       toast.error("Update failed.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -768,7 +782,13 @@ export default function Admin() {
                           <Input placeholder="Twitter" value={configForm?.socialLinks.twitter} onChange={e => setConfigForm({...configForm!, socialLinks: {...configForm!.socialLinks, twitter: e.target.value}})} className="bg-muted/30" />
                         </div>
                       </div>
-                      <Button type="submit" className="w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-2xl shadow-primary/20">Save System Changes</Button>
+                      <Button type="submit" disabled={isSaving} className="w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-2xl shadow-primary/20">
+                        {isSaving ? "Transmitting..." : (
+                          <span className="flex items-center gap-2">
+                            <Save className="h-5 w-5" /> Save System Changes
+                          </span>
+                        )}
+                      </Button>
                     </form>
                   </CardContent>
                 </Card>
