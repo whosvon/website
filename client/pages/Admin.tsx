@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap, Download, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -34,6 +36,15 @@ export default function Admin() {
   const [config, setConfig] = useState<StorefrontConfig | null>(null);
   const [configForm, setConfigForm] = useState<StorefrontConfig | null>(null);
   const [activeEditorSection, setActiveEditorSection] = useState<string | null>(null);
+
+  // Security Logs State
+  const [securityLogs, setSecurityLogs] = useState([
+    { event: "Admin Login Verified", ip: "192.168.1.1", time: new Date().toLocaleString(), status: "success" },
+    { event: "Suspicious SQL Pattern Blocked", ip: "45.22.11.9", time: new Date(Date.now() - 900000).toLocaleString(), status: "blocked" },
+    { event: "Brute Force Attempt Mitigated", ip: "103.4.2.11", time: new Date(Date.now() - 3600000).toLocaleString(), status: "blocked" },
+    { event: "System Config Updated", ip: "192.168.1.1", time: new Date(Date.now() - 10800000).toLocaleString(), status: "success" },
+    { event: "New Staff Member Initialized", ip: "192.168.1.1", time: new Date(Date.now() - 18000000).toLocaleString(), status: "success" }
+  ]);
 
   // Staff State
   const [isStaffDialogOpen, setIsStaffDialogOpen] = useState(false);
@@ -269,6 +280,45 @@ export default function Admin() {
     } catch (error) {
       toast.error("Deletion failed.");
     }
+  };
+
+  const handleClearLogs = () => {
+    if (confirm("Are you sure you want to clear all security logs? This action cannot be undone.")) {
+      setSecurityLogs([]);
+      toast.success("Security logs cleared.");
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add Title
+    doc.setFontSize(20);
+    doc.text("AETHER SECURITY PROTOCOL LOGS", 14, 22);
+    
+    // Add Metadata
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`System Status: OPTIMAL`, 14, 35);
+    
+    // Add Table
+    const tableData = securityLogs.map(log => [
+      log.time,
+      log.event,
+      log.ip,
+      log.status.toUpperCase()
+    ]);
+    
+    autoTable(doc, {
+      startY: 45,
+      head: [['Timestamp', 'Event', 'IP Address', 'Status']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [109, 40, 217] }, // Aether Purple
+    });
+    
+    doc.save(`aether-security-logs-${Date.now()}.pdf`);
+    toast.success("Security report downloaded.");
   };
 
   const chartData = orders.slice(-7).map(o => ({
@@ -963,19 +1013,28 @@ export default function Admin() {
             </div>
 
             <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2"><Shield className="h-4 w-4" /> Security Protocol Logs</CardTitle>
-                <CardDescription>Real-time monitoring of system access and potential breaches.</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2"><Shield className="h-4 w-4" /> Security Protocol Logs</CardTitle>
+                  <CardDescription>Real-time monitoring of system access and potential breaches.</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="h-9 rounded-xl font-bold uppercase italic text-[10px] gap-2">
+                    <Download className="h-3.5 w-3.5" /> Export PDF
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={handleClearLogs} className="h-9 rounded-xl font-bold uppercase italic text-[10px] gap-2 text-destructive hover:bg-destructive/10">
+                    <Eraser className="h-3.5 w-3.5" /> Clear Logs
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {[
-                    { event: "Admin Login Verified", ip: "192.168.1.1", time: "2 mins ago", status: "success" },
-                    { event: "Suspicious SQL Pattern Blocked", ip: "45.22.11.9", time: "15 mins ago", status: "blocked" },
-                    { event: "Brute Force Attempt Mitigated", ip: "103.4.2.11", time: "1 hour ago", status: "blocked" },
-                    { event: "System Config Updated", ip: "192.168.1.1", time: "3 hours ago", status: "success" },
-                    { event: "New Staff Member Initialized", ip: "192.168.1.1", time: "5 hours ago", status: "success" }
-                  ].map((log, i) => (
+                  {securityLogs.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed rounded-[2rem] opacity-50">
+                      <Shield className="h-12 w-12 mx-auto mb-4" />
+                      <p className="font-black uppercase italic tracking-tighter">No logs recorded</p>
+                    </div>
+                  ) : securityLogs.map((log, i) => (
                     <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
                       <div className="flex items-center gap-4">
                         <div className={cn("w-2 h-2 rounded-full", log.status === 'success' ? "bg-green-500" : "bg-destructive")} />
