@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown, Truck, MapPin, CreditCard, Phone, CheckCircle2, Copy, Settings, Sparkles } from "lucide-react";
+import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Ghost, Github, ChevronDown, Truck, MapPin, CreditCard, Phone, CheckCircle2, Copy, Settings, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -195,6 +195,8 @@ export default function Index() {
         <div className="flex gap-4">
           {config.socialLinks.instagram && <a href={config.socialLinks.instagram} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Instagram className="h-5 w-5" /></a>}
           {config.socialLinks.twitter && <a href={config.socialLinks.twitter} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Twitter className="h-5 w-5" /></a>}
+          {config.socialLinks.facebook && <a href={config.socialLinks.facebook} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Facebook className="h-5 w-5" /></a>}
+          {config.socialLinks.snapchat && <a href={config.socialLinks.snapchat} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Ghost className="h-5 w-5" /></a>}
         </div>
       </div>
     );
@@ -569,6 +571,8 @@ export default function Index() {
                     <div className="flex gap-4">
                       {config?.socialLinks.instagram && <a href={config.socialLinks.instagram} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Instagram className="h-5 w-5" /></a>}
                       {config?.socialLinks.twitter && <a href={config.socialLinks.twitter} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Twitter className="h-5 w-5" /></a>}
+                      {config?.socialLinks.facebook && <a href={config.socialLinks.facebook} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Facebook className="h-5 w-5" /></a>}
+                      {config?.socialLinks.snapchat && <a href={config.socialLinks.snapchat} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Ghost className="h-5 w-5" /></a>}
                     </div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{config?.brandTagline}</p>
                   </div>
@@ -595,6 +599,8 @@ export default function Index() {
                 <div className="flex gap-4">
                   {config?.socialLinks.instagram && <a href={config.socialLinks.instagram} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Instagram className="h-5 w-5" /></a>}
                   {config?.socialLinks.twitter && <a href={config.socialLinks.twitter} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Twitter className="h-5 w-5" /></a>}
+                  {config?.socialLinks.facebook && <a href={config.socialLinks.facebook} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Facebook className="h-5 w-5" /></a>}
+                  {config?.socialLinks.snapchat && <a href={config.socialLinks.snapchat} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Ghost className="h-5 w-5" /></a>}
                   {config?.socialLinks.discord && <a href={config.socialLinks.discord} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Github className="h-5 w-5" /></a>}
                 </div>
               )}

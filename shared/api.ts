@@ -98,6 +98,7 @@ export interface SocialLinks {
   instagram?: string;
   twitter?: string;
   facebook?: string;
+  snapchat?: string;
   discord?: string;
 }
 

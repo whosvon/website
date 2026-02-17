@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap, Download, Eraser, FileText } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap, Download, Eraser, FileText, Instagram, Twitter, Facebook, Ghost } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -891,8 +891,22 @@ export default function Admin() {
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase">Social Links</Label>
                         <div className="grid grid-cols-2 gap-4">
-                          <Input placeholder="Instagram" value={configForm?.socialLinks.instagram} onChange={e => setConfigForm({...configForm!, socialLinks: {...configForm!.socialLinks, instagram: e.target.value}})} className="bg-muted/30" />
-                          <Input placeholder="Twitter" value={configForm?.socialLinks.twitter} onChange={e => setConfigForm({...configForm!, socialLinks: {...configForm!.socialLinks, twitter: e.target.value}})} className="bg-muted/30" />
+                          <div className="relative">
+                            <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="Instagram" value={configForm?.socialLinks.instagram} onChange={e => setConfigForm({...configForm!, socialLinks: {...configForm!.socialLinks, instagram: e.target.value}})} className="bg-muted/30 pl-10" />
+                          </div>
+                          <div className="relative">
+                            <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="Twitter" value={configForm?.socialLinks.twitter} onChange={e => setConfigForm({...configForm!, socialLinks: {...configForm!.socialLinks, twitter: e.target.value}})} className="bg-muted/30 pl-10" />
+                          </div>
+                          <div className="relative">
+                            <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="Facebook" value={configForm?.socialLinks.facebook} onChange={e => setConfigForm({...configForm!, socialLinks: {...configForm!.socialLinks, facebook: e.target.value}})} className="bg-muted/30 pl-10" />
+                          </div>
+                          <div className="relative">
+                            <Ghost className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="Snapchat" value={configForm?.socialLinks.snapchat} onChange={e => setConfigForm({...configForm!, socialLinks: {...configForm!.socialLinks, snapchat: e.target.value}})} className="bg-muted/30 pl-10" />
+                          </div>
                         </div>
                       </div>
                       <Button type="submit" disabled={isSaving} className="w-full h-16 rounded-[2rem] font-black uppercase italic text-lg shadow-2xl shadow-primary/20">{isSaving ? "Transmitting..." : <span className="flex items-center gap-2"><Save className="h-5 w-5" /> Save System Changes</span>}</Button>
