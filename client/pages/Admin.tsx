@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -212,6 +212,35 @@ export default function Admin() {
   // Group messages by user
   const chatUsers = Array.from(new Set(messages.filter(m => m.senderRole === 'customer').map(m => m.senderId)));
 
+  // Points Logic
+  const totalPointsInSystem = users.reduce((sum, u) => sum + (u.loyaltyPoints || 0), 0);
+  const totalPointsRedeemed = orders.reduce((sum, o) => sum + (o.pointsUsed || 0), 0);
+  
+  const pointTransactions = orders.flatMap(o => {
+    const txs = [];
+    if (o.pointsEarned && o.pointsEarned > 0) {
+      txs.push({
+        id: `${o.id}-earned`,
+        orderId: o.id,
+        user: o.customerName,
+        amount: o.pointsEarned,
+        type: 'earned',
+        date: o.createdAt
+      });
+    }
+    if (o.pointsUsed && o.pointsUsed > 0) {
+      txs.push({
+        id: `${o.id}-spent`,
+        orderId: o.id,
+        user: o.customerName,
+        amount: o.pointsUsed,
+        type: 'spent',
+        date: o.createdAt
+      });
+    }
+    return txs;
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
@@ -326,6 +355,7 @@ export default function Admin() {
           <TabsList className="bg-background border p-1 rounded-2xl h-14">
             <TabsTrigger value="products" className="rounded-xl px-8 font-black uppercase italic text-xs">Inventory</TabsTrigger>
             <TabsTrigger value="orders" className="rounded-xl px-8 font-black uppercase italic text-xs">Orders</TabsTrigger>
+            <TabsTrigger value="points" className="rounded-xl px-8 font-black uppercase italic text-xs">Points</TabsTrigger>
             <TabsTrigger value="messages" className="rounded-xl px-8 font-black uppercase italic text-xs">Messages</TabsTrigger>
             <TabsTrigger value="editor" className="rounded-xl px-8 font-black uppercase italic text-xs">Builder</TabsTrigger>
           </TabsList>
@@ -404,6 +434,100 @@ export default function Admin() {
                 </TableBody>
               </Table>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="points" className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Card className="border-none shadow-sm bg-primary/5 border border-primary/10">
+                <CardContent className="p-6 flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Coins className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Points in Circulation</p>
+                    <h3 className="text-3xl font-black italic text-primary">{totalPointsInSystem.toLocaleString()} PTS</h3>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+                <CardContent className="p-6 flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-3xl bg-muted flex items-center justify-center text-muted-foreground">
+                    <History className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Points Redeemed</p>
+                    <h3 className="text-3xl font-black italic">{totalPointsRedeemed.toLocaleString()} PTS</h3>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <Card className="lg:col-span-5 border-none shadow-sm bg-background/50 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-xs font-black uppercase tracking-widest">User Balances</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent border-none">
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">User</TableHead>
+                        <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Balance</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((u) => (
+                        <TableRow key={u.id} className="border-primary/5">
+                          <TableCell className="font-bold uppercase italic text-xs">{u.name || u.email}</TableCell>
+                          <TableCell className="text-right font-black text-primary">{u.loyaltyPoints || 0} PTS</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-7 border-none shadow-sm bg-background/50 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-xs font-black uppercase tracking-widest">Transaction Ledger</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent border-none">
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Date</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">User</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest">Order</TableHead>
+                        <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pointTransactions.map((tx) => (
+                        <TableRow key={tx.id} className="border-primary/5">
+                          <TableCell className="text-[10px] font-bold text-muted-foreground">{new Date(tx.date).toLocaleDateString()}</TableCell>
+                          <TableCell className="font-bold uppercase italic text-[10px]">{tx.user}</TableCell>
+                          <TableCell className="font-mono text-[10px]">{tx.orderId}</TableCell>
+                          <TableCell className="text-right">
+                            <div className={cn(
+                              "flex items-center justify-end gap-1 font-black text-xs italic",
+                              tx.type === 'earned' ? "text-green-500" : "text-primary"
+                            )}>
+                              {tx.type === 'earned' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownLeft className="h-3 w-3" />}
+                              {tx.type === 'earned' ? '+' : '-'}{tx.amount}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {pointTransactions.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-10 text-[10px] font-black uppercase opacity-50">No point activity recorded</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="messages" className="space-y-4">
