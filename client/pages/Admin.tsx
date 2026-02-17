@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap, Download, Eraser, FileText, Instagram, Twitter, Facebook, Ghost, Github, ClipboardList, TrendingUp, AlertTriangle } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap, Download, Eraser, FileText, Instagram, Twitter, Facebook, Ghost, Github, ClipboardList, TrendingUp, AlertTriangle, User as UserIcon, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -37,6 +37,10 @@ export default function Admin() {
   const [config, setConfig] = useState<StorefrontConfig | null>(null);
   const [configForm, setConfigForm] = useState<StorefrontConfig | null>(null);
   const [activeEditorSection, setActiveEditorSection] = useState<string | null>(null);
+
+  // Intelligence State
+  const [selectedIntelUser, setSelectedIntelUser] = useState<User | null>(null);
+  const [userSearch, setUserSearch] = useState("");
 
   // Security Logs State
   const [securityLogs, setSecurityLogs] = useState([
@@ -437,6 +441,41 @@ export default function Admin() {
     toast.success("Inventory report generated.");
   };
 
+  const handleDownloadCustomerReport = () => {
+    const doc = new jsPDF();
+    const brandName = config?.brandName || "AETHER SYSTEMS";
+    
+    doc.setFontSize(22);
+    doc.text(`${brandName} - CUSTOMER INTELLIGENCE`, 14, 22);
+    
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 32);
+    
+    const tableData = customers.map(u => {
+      const userOrders = orders.filter(o => o.userId === u.id);
+      const ltv = userOrders.reduce((sum, o) => sum + o.total, 0);
+      return [
+        u.name || u.email,
+        u.email,
+        userOrders.length,
+        `$${ltv.toFixed(2)}`,
+        u.loyaltyPoints,
+        new Date(u.createdAt).toLocaleDateString()
+      ];
+    });
+    
+    autoTable(doc, {
+      startY: 45,
+      head: [['Customer', 'Email', 'Orders', 'LTV', 'Points', 'Joined']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [109, 40, 217] },
+    });
+    
+    doc.save(`${brandName.toLowerCase().replace(/\s+/g, '-')}-customer-report.pdf`);
+    toast.success("Customer report generated.");
+  };
+
   const chartData = orders.slice(-7).map(o => ({
     date: new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     total: o.total
@@ -445,6 +484,10 @@ export default function Admin() {
   const chatUsers = Array.from(new Set(messages.filter(m => m.senderRole === 'customer').map(m => m.senderId)));
   const customers = allUsers.filter(u => u.role === 'customer');
   const staffMembers = allUsers.filter(u => u.role === 'admin' || u.role === 'employee');
+
+  const filteredCustomers = customers.filter(u => 
+    (u.name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase()))
+  );
 
   const totalPointsInSystem = customers.reduce((sum, u) => sum + (u.loyaltyPoints || 0), 0);
   const totalPointsRedeemed = orders.reduce((sum, o) => sum + (o.pointsUsed || 0), 0);
@@ -581,6 +624,7 @@ export default function Admin() {
           <TabsList className="bg-background border p-1 rounded-2xl h-14 overflow-x-auto flex-nowrap">
             {hasPermission('products') && <TabsTrigger value="products" className="rounded-xl px-8 font-black uppercase italic text-xs">Inventory</TabsTrigger>}
             {hasPermission('orders') && <TabsTrigger value="orders" className="rounded-xl px-8 font-black uppercase italic text-xs">Orders</TabsTrigger>}
+            <TabsTrigger value="customers" className="rounded-xl px-8 font-black uppercase italic text-xs">Customers</TabsTrigger>
             {hasPermission('points') && <TabsTrigger value="points" className="rounded-xl px-8 font-black uppercase italic text-xs">Points</TabsTrigger>}
             {hasPermission('chat') && <TabsTrigger value="messages" className="rounded-xl px-8 font-black uppercase italic text-xs">Messages</TabsTrigger>}
             <TabsTrigger value="requests" className="rounded-xl px-8 font-black uppercase italic text-xs">Requests</TabsTrigger>
@@ -673,6 +717,150 @@ export default function Admin() {
                 </TableBody>
               </Table>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="customers" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div className="relative w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search customers..." 
+                  value={userSearch} 
+                  onChange={e => setUserSearch(e.target.value)} 
+                  className="pl-10 h-11 bg-background/50 border-none rounded-xl"
+                />
+              </div>
+              <Button onClick={handleDownloadCustomerReport} className="h-11 px-6 rounded-xl font-black uppercase italic text-[10px] gap-2">
+                <Download className="h-4 w-4" /> Export Intelligence
+              </Button>
+            </div>
+
+            <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-none">
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Customer</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Orders</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">LTV</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Points</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest">Intelligence</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCustomers.map((u) => {
+                    const userOrders = orders.filter(o => o.userId === u.id);
+                    const ltv = userOrders.reduce((sum, o) => sum + o.total, 0);
+                    return (
+                      <TableRow key={u.id} className="border-primary/5 hover:bg-primary/5 transition-colors">
+                        <TableCell className="font-bold uppercase italic text-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                              {u.avatar ? <img src={u.avatar} className="w-full h-full rounded-full object-cover" /> : <UserIcon className="h-4 w-4" />}
+                            </div>
+                            <div>
+                              <div>{u.name || "Guest"}</div>
+                              <div className="text-[9px] opacity-50 lowercase font-normal">{u.email}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{userOrders.length}</TableCell>
+                        <TableCell className="font-black text-primary">${ltv.toFixed(2)}</TableCell>
+                        <TableCell className="font-bold text-xs">{u.loyaltyPoints} PTS</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedIntelUser(u)} className="h-8 rounded-lg font-black uppercase italic text-[9px] gap-2 hover:bg-primary/10 hover:text-primary">
+                            <BarChart3 className="h-3 w-3" /> View Deep-Dive
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Card>
+
+            <Dialog open={!!selectedIntelUser} onOpenChange={(open) => !open && setSelectedIntelUser(null)}>
+              <DialogContent className="sm:max-w-[700px] rounded-[2rem] max-h-[90vh] overflow-y-auto">
+                {selectedIntelUser && (
+                  <>
+                    <DialogHeader>
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary">
+                          {selectedIntelUser.avatar ? <img src={selectedIntelUser.avatar} className="w-full h-full rounded-3xl object-cover" /> : <UserIcon className="h-8 w-8" />}
+                        </div>
+                        <div>
+                          <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">{selectedIntelUser.name || "Customer Intelligence"}</DialogTitle>
+                          <DialogDescription className="font-mono text-[10px] uppercase">{selectedIntelUser.email} • Joined {new Date(selectedIntelUser.createdAt).toLocaleDateString()}</DialogDescription>
+                        </div>
+                      </div>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-3 gap-4 py-4">
+                      <Card className="bg-muted/30 border-none p-4 space-y-1">
+                        <p className="text-[9px] font-black uppercase opacity-50">Lifetime Value</p>
+                        <p className="text-xl font-black text-primary italic">${orders.filter(o => o.userId === selectedIntelUser.id).reduce((s, o) => s + o.total, 0).toFixed(2)}</p>
+                      </Card>
+                      <Card className="bg-muted/30 border-none p-4 space-y-1">
+                        <p className="text-[9px] font-black uppercase opacity-50">Order Count</p>
+                        <p className="text-xl font-black italic">{orders.filter(o => o.userId === selectedIntelUser.id).length}</p>
+                      </Card>
+                      <Card className="bg-muted/30 border-none p-4 space-y-1">
+                        <p className="text-[9px] font-black uppercase opacity-50">Points Balance</p>
+                        <p className="text-xl font-black italic">{selectedIntelUser.loyaltyPoints} PTS</p>
+                      </Card>
+                    </div>
+
+                    <Tabs defaultValue="orders" className="mt-4">
+                      <TabsList className="bg-muted/30 p-1 rounded-xl h-10">
+                        <TabsTrigger value="orders" className="text-[10px] font-black uppercase italic">Order History</TabsTrigger>
+                        <TabsTrigger value="requests" className="text-[10px] font-black uppercase italic">Requests</TabsTrigger>
+                        <TabsTrigger value="chat" className="text-[10px] font-black uppercase italic">Chat Logs</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="orders" className="pt-4">
+                        <div className="space-y-2">
+                          {orders.filter(o => o.userId === selectedIntelUser.id).map(o => (
+                            <div key={o.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl border border-primary/5">
+                              <div>
+                                <p className="text-[10px] font-black uppercase italic">{o.id}</p>
+                                <p className="text-[9px] text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs font-black text-primary">${o.total.toFixed(2)}</p>
+                                <Badge variant="outline" className="text-[8px] uppercase h-4">{o.status}</Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="requests" className="pt-4">
+                        <div className="space-y-2">
+                          {requests.filter(r => r.customerEmail === selectedIntelUser.email).map(r => (
+                            <div key={r.id} className="p-3 bg-muted/30 rounded-xl border border-primary/5 space-y-2">
+                              <div className="flex justify-between items-center">
+                                <p className="text-[9px] font-black uppercase opacity-50">{new Date(r.createdAt).toLocaleDateString()}</p>
+                                <Badge variant="outline" className="text-[8px] uppercase h-4">{r.status}</Badge>
+                              </div>
+                              <p className="text-[10px] font-medium leading-relaxed">{r.requestText}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="chat" className="pt-4">
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                          {messages.filter(m => m.senderId === selectedIntelUser.id || m.text.includes(`@${selectedIntelUser.id}`)).map((m, i) => (
+                            <div key={i} className={cn("p-2 rounded-lg text-[10px]", m.senderRole === 'admin' ? "bg-primary/10 ml-4" : "bg-muted/50 mr-4")}>
+                              <p className="font-black uppercase italic mb-1">{m.senderRole === 'admin' ? "Support" : "Customer"}</p>
+                              <p>{m.text.replace(`@${selectedIntelUser.id} `, '')}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+
+                    <Button onClick={() => setSelectedIntelUser(null)} className="w-full h-12 mt-6 rounded-2xl font-black uppercase italic">Close Intelligence View</Button>
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="points" className="space-y-8">
