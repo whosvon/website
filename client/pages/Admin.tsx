@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap, Download, Eraser } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap, Download, Eraser, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -291,34 +291,72 @@ export default function Admin() {
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
-    
-    // Add Title
     doc.setFontSize(20);
     doc.text("AETHER SECURITY PROTOCOL LOGS", 14, 22);
-    
-    // Add Metadata
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
     doc.text(`System Status: OPTIMAL`, 14, 35);
-    
-    // Add Table
-    const tableData = securityLogs.map(log => [
-      log.time,
-      log.event,
-      log.ip,
-      log.status.toUpperCase()
-    ]);
-    
+    const tableData = securityLogs.map(log => [log.time, log.event, log.ip, log.status.toUpperCase()]);
     autoTable(doc, {
       startY: 45,
       head: [['Timestamp', 'Event', 'IP Address', 'Status']],
       body: tableData,
       theme: 'grid',
-      headStyles: { fillColor: [109, 40, 217] }, // Aether Purple
+      headStyles: { fillColor: [109, 40, 217] },
     });
-    
     doc.save(`aether-security-logs-${Date.now()}.pdf`);
     toast.success("Security report downloaded.");
+  };
+
+  const handleDownloadFinancialReport = () => {
+    const doc = new jsPDF();
+    const brandName = config?.brandName || "AETHER SYSTEMS";
+    
+    doc.setFontSize(22);
+    doc.text(`${brandName} - FINANCIAL LEDGER`, 14, 22);
+    
+    doc.setFontSize(10);
+    doc.text(`Reporting Period: All Time`, 14, 32);
+    doc.text(`Jurisdiction: Ontario, Canada`, 14, 37);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 42);
+    
+    const tableData = orders.map(o => [
+      new Date(o.createdAt).toLocaleDateString(),
+      o.id,
+      o.customerName,
+      `$${o.subtotal.toFixed(2)}`,
+      `$${o.taxAmount.toFixed(2)}`,
+      `$${o.shippingFee.toFixed(2)}`,
+      `$${o.total.toFixed(2)}`
+    ]);
+    
+    autoTable(doc, {
+      startY: 50,
+      head: [['Date', 'Order ID', 'Customer', 'Subtotal', 'HST (13%)', 'Shipping', 'Total']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [109, 40, 217] },
+      foot: [[
+        'TOTALS', 
+        '', 
+        '', 
+        `$${orders.reduce((s, o) => s + o.subtotal, 0).toFixed(2)}`,
+        `$${orders.reduce((s, o) => s + o.taxAmount, 0).toFixed(2)}`,
+        `$${orders.reduce((s, o) => s + o.shippingFee, 0).toFixed(2)}`,
+        `$${orders.reduce((s, o) => s + o.total, 0).toFixed(2)}`
+      ]],
+      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+    });
+    
+    const finalY = (doc as any).lastAutoTable.finalY || 150;
+    doc.setFontSize(12);
+    doc.text("FINANCIAL SUMMARY", 14, finalY + 20);
+    doc.setFontSize(10);
+    doc.text(`Total Revenue: $${orders.reduce((s, o) => s + o.total, 0).toFixed(2)}`, 14, finalY + 30);
+    doc.text(`Total HST Collected: $${orders.reduce((s, o) => s + o.taxAmount, 0).toFixed(2)}`, 14, finalY + 35);
+    
+    doc.save(`${brandName.toLowerCase().replace(/\s+/g, '-')}-financial-report.pdf`);
+    toast.success("Financial report generated.");
   };
 
   const chartData = orders.slice(-7).map(o => ({
@@ -501,6 +539,11 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="orders" className="space-y-4">
+            <div className="flex justify-end mb-4">
+              <Button onClick={handleDownloadFinancialReport} className="h-10 rounded-xl font-black uppercase italic text-[10px] gap-2">
+                <FileText className="h-4 w-4" /> Download Financial Report (Ontario)
+              </Button>
+            </div>
             <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
               <Table>
                 <TableHeader>
