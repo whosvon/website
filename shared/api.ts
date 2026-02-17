@@ -1,10 +1,15 @@
+export type Permission = 'products' | 'orders' | 'points' | 'chat' | 'settings' | 'staff';
+
 export interface User {
   id: string;
   email: string;
   name?: string;
-  role: 'admin' | 'customer';
+  role: 'admin' | 'customer' | 'employee';
   avatar?: string;
   loyaltyPoints: number;
+  permissions?: Permission[];
+  password?: string; // For staff login
+  secretCode?: string; // For staff login
   createdAt: string;
 }
 

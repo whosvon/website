@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { getProducts, addProduct, updateProduct, deleteProduct } from "./routes/products";
 import { getOrders, createOrder, getMyOrders, updateOrder } from "./routes/orders";
-import { handleLogin, handleRegister, handleCustomerLogin, handleGoogleLogin, getUsers } from "./routes/auth";
+import { handleLogin, handleRegister, handleCustomerLogin, handleGoogleLogin, getUsers, createStaff, updateStaff, deleteStaff } from "./routes/auth";
 import { getConfig, updateConfig } from "./routes/config";
 import { getMessages, sendMessage, markAsRead } from "./routes/chat";
 
@@ -34,6 +34,9 @@ export function createServer() {
   app.post("/api/chat/read", markAsRead);
 
   app.get("/api/users", getUsers);
+  app.post("/api/staff", createStaff);
+  app.put("/api/staff/:id", updateStaff);
+  app.delete("/api/staff/:id", deleteStaff);
 
   app.post("/api/subscribe", (req, res) => {
     const { email } = req.body;

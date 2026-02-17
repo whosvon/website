@@ -2,8 +2,22 @@ import { Product, Order, StorefrontConfig, User, ChatMessage } from "@shared/api
 
 export const products: Product[] = [];
 export const orders: Order[] = [];
-export const users: User[] = [];
 export const chatMessages: ChatMessage[] = [];
+
+// Initialize with a default master admin
+export const users: User[] = [
+  {
+    id: "admin-master",
+    email: "admin@aether.store",
+    name: "Master Admin",
+    role: "admin",
+    loyaltyPoints: 0,
+    permissions: ['products', 'orders', 'points', 'chat', 'settings', 'staff'],
+    password: "rROBLOX00",
+    secretCode: "27club",
+    createdAt: new Date().toISOString()
+  }
+];
 
 export let storefrontConfig: StorefrontConfig = {
   brandName: "AETHER",
