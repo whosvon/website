@@ -76,6 +76,7 @@ export interface StorefrontSection {
   subtitle?: string;
   content?: string;
   image?: string;
+  items?: { q: string; a: string }[];
   visible: boolean;
 }
 

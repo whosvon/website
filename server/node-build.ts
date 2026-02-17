@@ -5,7 +5,7 @@ import * as express from "express";
 import fs from "fs";
 
 const app = createServer();
-const port = process.env.PORT || 8080;
+const port = Number(process.env.PORT) || 8080;
 
 // Robust path resolution for ES modules
 const __filename = fileURLToPath(import.meta.url);
