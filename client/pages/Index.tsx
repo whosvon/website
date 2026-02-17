@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown, Truck, MapPin, CreditCard, Phone, CheckCircle2, Copy } from "lucide-react";
+import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown, Truck, MapPin, CreditCard, Phone, CheckCircle2, Copy, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 export default function Index() {
@@ -28,6 +29,7 @@ export default function Index() {
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'logistics' | 'payment' | 'success'>('cart');
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Checkout State
   const [shippingMethod, setShippingMethod] = useState<'pickup' | 'delivery'>('delivery');
@@ -46,6 +48,7 @@ export default function Index() {
       const elementPosition = elementRect - bodyRect;
       const offsetPosition = elementPosition - offset;
       window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+      setIsMobileMenuOpen(false);
     }
   };
 
@@ -169,6 +172,32 @@ export default function Index() {
     </div>
   );
 
+  if (config?.maintenanceMode) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6 text-center space-y-8">
+        <div className="w-24 h-24 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary animate-pulse">
+          <Settings className="h-12 w-12" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-black tracking-tighter uppercase italic">System Maintenance</h1>
+          <p className="text-muted-foreground max-w-md mx-auto font-medium">
+            The Aether network is currently undergoing a scheduled protocol update. We will be back online shortly.
+          </p>
+        </div>
+        <div className="flex gap-4">
+          {config.socialLinks.instagram && <a href={config.socialLinks.instagram} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Instagram className="h-5 w-5" /></a>}
+          {config.socialLinks.twitter && <a href={config.socialLinks.twitter} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Twitter className="h-5 w-5" /></a>}
+        </div>
+      </div>
+    );
+  }
+
+  const navLinks = config?.sections.filter(s => s.visible && s.title).map(s => ({
+    id: s.id,
+    label: s.title?.split(' ')[0] || s.type,
+    type: s.type
+  })) || [];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <AnimatePresence>
@@ -179,278 +208,287 @@ export default function Index() {
         )}
       </AnimatePresence>
 
-      <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl">
+      <nav className={cn(
+        "z-50 w-full border-b bg-background/80 backdrop-blur-xl transition-all",
+        config?.headerSettings.sticky ? "sticky top-0" : "relative"
+      )}>
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-          <Link to="/" className="text-2xl font-black tracking-tighter text-primary italic uppercase flex items-center gap-2">
-            <motion.div whileHover={{ rotate: 180 }} className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground text-xs not-italic">A</motion.div>
-            {config?.brandName || "AETHER"}
-          </Link>
-          
-          <div className="hidden md:flex items-center gap-10">
-            {['Home', 'Shop', 'About'].map((item) => (
-              <button key={item} onClick={() => item === 'Home' ? window.scrollTo({ top: 0, behavior: 'smooth' }) : scrollToSection(item.toLowerCase())} className="text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors relative group">
-                {item}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
-              </button>
-            ))}
+          <div className="flex items-center gap-8">
+            <Link to="/" className="text-2xl font-black tracking-tighter text-primary italic uppercase flex items-center gap-2">
+              <motion.div whileHover={{ rotate: 180 }} className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground text-xs not-italic">A</motion.div>
+              {config?.brandName || "AETHER"}
+            </Link>
+            
+            <div className="hidden md:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <button key={link.id} onClick={() => scrollToSection(link.id)} className="text-[10px] font-black uppercase tracking-widest hover:text-primary transition-colors relative group">
+                  {link.label}
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="relative hidden lg:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input 
-                placeholder="SEARCH PROTOCOLS..." 
-                className="h-9 w-48 bg-muted/30 border-none text-[10px] font-bold pl-9 rounded-full focus-visible:ring-1"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+            {config?.headerSettings.showSearch && (
+              <div className="relative hidden lg:block">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input 
+                  placeholder="SEARCH PROTOCOLS..." 
+                  className="h-9 w-48 bg-muted/30 border-none text-[10px] font-bold pl-9 rounded-full focus-visible:ring-1"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            )}
 
-            {config?.loyaltySettings.enabled && currentUser && (
+            {config?.headerSettings.showLoyalty && config?.loyaltySettings.enabled && currentUser && (
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-full border border-primary/10">
                 <Coins className="h-3.5 w-3.5 text-primary" />
                 <span className="text-[10px] font-black text-primary italic">{currentUser.loyaltyPoints} PTS</span>
               </div>
             )}
 
-            <Dialog open={isCartOpen} onOpenChange={(open) => { setIsCartOpen(open); if(!open) { setCheckoutStep('cart'); setPlacedOrder(null); } }}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full h-11 w-11">
-                  <ShoppingCart className="h-5 w-5" />
-                  {cart.length > 0 && (
-                    <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground font-black">
-                      {cart.length}
-                    </motion.span>
-                  )}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[450px] bg-background border-primary/20 rounded-[2rem] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
-                    {checkoutStep === 'cart' ? 'Registry' : checkoutStep === 'logistics' ? 'Logistics' : checkoutStep === 'payment' ? 'Payment' : 'Success'}
-                  </DialogTitle>
-                </DialogHeader>
-                
-                {checkoutStep === 'cart' && (
-                  <div className="space-y-6">
-                    <div className="max-h-[30vh] overflow-y-auto space-y-3 pr-2">
-                      {cart.length === 0 ? (
-                        <div className="text-center py-10 text-muted-foreground text-xs font-bold uppercase italic">Registry is empty</div>
-                      ) : cart.map((item, idx) => (
-                        <motion.div layout key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-2xl border border-primary/5">
-                          <div className="flex items-center gap-3">
-                            <img src={item.image} className="w-12 h-12 rounded-xl object-cover border" />
-                            <div>
-                              <div className="font-bold text-xs uppercase italic">{item.name}</div>
-                              <div className="text-xs text-primary font-black">${item.price}</div>
-                            </div>
-                          </div>
-                          <Button variant="ghost" size="icon" onClick={() => removeFromCart(idx)} className="hover:text-destructive rounded-full"><Trash2 className="h-4 w-4" /></Button>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {config?.loyaltySettings.enabled && currentUser && currentUser.loyaltyPoints > 0 && cart.length > 0 && (
-                      <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2 text-primary">
-                            <Coins className="h-4 w-4" />
-                            <span className="text-[10px] font-black uppercase italic">Redeem Points</span>
-                          </div>
-                          <span className="text-[10px] font-bold text-muted-foreground">{currentUser.loyaltyPoints} Available</span>
-                        </div>
-                        <Slider 
-                          value={[pointsToUse]} 
-                          max={Math.min(currentUser.loyaltyPoints, cartSubtotal * config.loyaltySettings.pointsToDollarRate)} 
-                          step={config.loyaltySettings.pointsToDollarRate}
-                          onValueChange={(val) => setPointsToUse(val[0])}
-                        />
-                        <p className="text-[9px] text-center font-bold text-muted-foreground uppercase">Using {pointsToUse} points for ${discountAmount.toFixed(2)} off</p>
-                      </div>
+            {config?.headerSettings.showCart && (
+              <Dialog open={isCartOpen} onOpenChange={(open) => { setIsCartOpen(open); if(!open) { setCheckoutStep('cart'); setPlacedOrder(null); } }}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative hover:bg-primary/5 rounded-full h-11 w-11">
+                    <ShoppingCart className="h-5 w-5" />
+                    {cart.length > 0 && (
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground font-black">
+                        {cart.length}
+                      </motion.span>
                     )}
-
-                    <div className="border-t pt-4 space-y-4">
-                      <div className="flex justify-between font-black uppercase italic text-xs">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span>${cartSubtotal.toFixed(2)}</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[450px] bg-background border-primary/20 rounded-[2rem] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
+                      {checkoutStep === 'cart' ? 'Registry' : checkoutStep === 'logistics' ? 'Logistics' : checkoutStep === 'payment' ? 'Payment' : 'Success'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  
+                  {checkoutStep === 'cart' && (
+                    <div className="space-y-6">
+                      <div className="max-h-[30vh] overflow-y-auto space-y-3 pr-2">
+                        {cart.length === 0 ? (
+                          <div className="text-center py-10 text-muted-foreground text-xs font-bold uppercase italic">Registry is empty</div>
+                        ) : cart.map((item, idx) => (
+                          <motion.div layout key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-2xl border border-primary/5">
+                            <div className="flex items-center gap-3">
+                              <img src={item.image} className="w-12 h-12 rounded-xl object-cover border" />
+                              <div>
+                                <div className="font-bold text-xs uppercase italic">{item.name}</div>
+                                <div className="text-xs text-primary font-black">${item.price}</div>
+                              </div>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => removeFromCart(idx)} className="hover:text-destructive rounded-full"><Trash2 className="h-4 w-4" /></Button>
+                          </motion.div>
+                        ))}
                       </div>
-                      {discountAmount > 0 && (
-                        <div className="flex justify-between font-black uppercase italic text-xs text-primary">
-                          <span>Discount</span>
-                          <span>-${discountAmount.toFixed(2)}</span>
+
+                      {config?.loyaltySettings.enabled && currentUser && currentUser.loyaltyPoints > 0 && cart.length > 0 && (
+                        <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2 text-primary">
+                              <Coins className="h-4 w-4" />
+                              <span className="text-[10px] font-black uppercase italic">Redeem Points</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-muted-foreground">{currentUser.loyaltyPoints} Available</span>
+                          </div>
+                          <Slider 
+                            value={[pointsToUse]} 
+                            max={Math.min(currentUser.loyaltyPoints, cartSubtotal * config.loyaltySettings.pointsToDollarRate)} 
+                            step={config.loyaltySettings.pointsToDollarRate}
+                            onValueChange={(val) => setPointsToUse(val[0])}
+                          />
+                          <p className="text-[9px] text-center font-bold text-muted-foreground uppercase">Using {pointsToUse} points for ${discountAmount.toFixed(2)} off</p>
                         </div>
                       )}
-                      <Button disabled={cart.length === 0} onClick={() => setCheckoutStep('logistics')} className="w-full h-14 font-black uppercase italic rounded-2xl">Continue to Logistics</Button>
-                    </div>
-                  </div>
-                )}
 
-                {checkoutStep === 'logistics' && (
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <Label className="text-[10px] font-black uppercase tracking-widest">Select Method</Label>
-                      <RadioGroup value={shippingMethod} onValueChange={(val: any) => setShippingMethod(val)} className="grid grid-cols-2 gap-4">
-                        <div className={cn("relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer", shippingMethod === 'delivery' ? "border-primary bg-primary/5" : "border-muted hover:border-primary/20")}>
-                          <RadioGroupItem value="delivery" id="delivery" className="sr-only" />
-                          <Label htmlFor="delivery" className="cursor-pointer flex flex-col items-center gap-2">
-                            <Truck className={cn("h-6 w-6", shippingMethod === 'delivery' ? "text-primary" : "text-muted-foreground")} />
-                            <span className="text-[10px] font-black uppercase italic">Delivery</span>
-                          </Label>
+                      <div className="border-t pt-4 space-y-4">
+                        <div className="flex justify-between font-black uppercase italic text-xs">
+                          <span className="text-muted-foreground">Subtotal</span>
+                          <span>${cartSubtotal.toFixed(2)}</span>
                         </div>
-                        <div className={cn("relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer", shippingMethod === 'pickup' ? "border-primary bg-primary/5" : "border-muted hover:border-primary/20")}>
-                          <RadioGroupItem value="pickup" id="pickup" className="sr-only" />
-                          <Label htmlFor="pickup" className="cursor-pointer flex flex-col items-center gap-2">
-                            <MapPin className={cn("h-6 w-6", shippingMethod === 'pickup' ? "text-primary" : "text-muted-foreground")} />
-                            <span className="text-[10px] font-black uppercase italic">Pickup</span>
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-
-                    {shippingMethod === 'delivery' ? (
-                      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase">Full Name</Label>
-                          <Input value={customerDetails.name} onChange={e => setCustomerDetails({...customerDetails, name: e.target.value})} placeholder="John Doe" className="h-12 bg-muted/30 rounded-xl" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase">Phone Number</Label>
-                          <Input value={customerDetails.phone} onChange={e => setCustomerDetails({...customerDetails, phone: e.target.value})} placeholder="+1 (555) 000-0000" className="h-12 bg-muted/30 rounded-xl" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase">Shipping Address</Label>
-                          <Textarea value={customerDetails.address} onChange={e => setCustomerDetails({...customerDetails, address: e.target.value})} placeholder="Street, City, Province, Postal Code" className="bg-muted/30 rounded-xl min-h-[80px]" />
-                        </div>
-                        <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center gap-3">
-                          <Info className="h-4 w-4 text-primary" />
-                          <p className="text-[9px] font-bold uppercase italic text-primary">
-                            {shippingFee === 0 ? "FREE SHIPPING APPLIED" : `FLAT RATE SHIPPING: $${shippingFee}`}
-                          </p>
-                        </div>
+                        {discountAmount > 0 && (
+                          <div className="flex justify-between font-black uppercase italic text-xs text-primary">
+                            <span>Discount</span>
+                            <span>-${discountAmount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <Button disabled={cart.length === 0} onClick={() => setCheckoutStep('logistics')} className="w-full h-14 font-black uppercase italic rounded-2xl">Continue to Logistics</Button>
                       </div>
-                    ) : (
-                      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="p-4 bg-muted/30 rounded-2xl border border-primary/5 space-y-2">
-                          <Label className="text-[10px] font-black uppercase opacity-50">Pickup Location</Label>
-                          <p className="text-xs font-bold uppercase italic">{config?.shippingSettings.pickupLocation}</p>
+                    </div>
+                  )}
+
+                  {checkoutStep === 'logistics' && (
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <Label className="text-[10px] font-black uppercase tracking-widest">Select Method</Label>
+                        <RadioGroup value={shippingMethod} onValueChange={(val: any) => setShippingMethod(val)} className="grid grid-cols-2 gap-4">
+                          <div className={cn("relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer", shippingMethod === 'delivery' ? "border-primary bg-primary/5" : "border-muted hover:border-primary/20")}>
+                            <RadioGroupItem value="delivery" id="delivery" className="sr-only" />
+                            <Label htmlFor="delivery" className="cursor-pointer flex flex-col items-center gap-2">
+                              <Truck className={cn("h-6 w-6", shippingMethod === 'delivery' ? "text-primary" : "text-muted-foreground")} />
+                              <span className="text-[10px] font-black uppercase italic">Delivery</span>
+                            </Label>
+                          </div>
+                          <div className={cn("relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer", shippingMethod === 'pickup' ? "border-primary bg-primary/5" : "border-muted hover:border-primary/20")}>
+                            <RadioGroupItem value="pickup" id="pickup" className="sr-only" />
+                            <Label htmlFor="pickup" className="cursor-pointer flex flex-col items-center gap-2">
+                              <MapPin className={cn("h-6 w-6", shippingMethod === 'pickup' ? "text-primary" : "text-muted-foreground")} />
+                              <span className="text-[10px] font-black uppercase italic">Pickup</span>
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      {shippingMethod === 'delivery' ? (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase">Full Name</Label>
+                            <Input value={customerDetails.name} onChange={e => setCustomerDetails({...customerDetails, name: e.target.value})} placeholder="John Doe" className="h-12 bg-muted/30 rounded-xl" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase">Phone Number</Label>
+                            <Input value={customerDetails.phone} onChange={e => setCustomerDetails({...customerDetails, phone: e.target.value})} placeholder="+1 (555) 000-0000" className="h-12 bg-muted/30 rounded-xl" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase">Shipping Address</Label>
+                            <Textarea value={customerDetails.address} onChange={e => setCustomerDetails({...customerDetails, address: e.target.value})} placeholder="Street, City, Province, Postal Code" className="bg-muted/30 rounded-xl min-h-[80px]" />
+                          </div>
+                          <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center gap-3">
+                            <Info className="h-4 w-4 text-primary" />
+                            <p className="text-[9px] font-bold uppercase italic text-primary">
+                              {shippingFee === 0 ? "FREE SHIPPING APPLIED" : `FLAT RATE SHIPPING: $${shippingFee}`}
+                            </p>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase">Payment Timing</Label>
-                          <RadioGroup value={paymentMethod} onValueChange={(val: any) => setPaymentMethod(val)} className="space-y-2">
-                            <div className={cn("flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer", paymentMethod === 'etransfer' ? "border-primary bg-primary/5" : "border-muted")}>
-                              <Label htmlFor="pay-now" className="flex items-center gap-3 cursor-pointer">
-                                <CreditCard className="h-4 w-4" />
-                                <span className="text-[10px] font-black uppercase italic">Pay Now (E-Transfer)</span>
-                              </Label>
-                              <RadioGroupItem value="etransfer" id="pay-now" />
-                            </div>
-                            {config?.shippingSettings.allowPayOnArrival && (
-                              <div className={cn("flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer", paymentMethod === 'on_arrival' ? "border-primary bg-primary/5" : "border-muted")}>
-                                <Label htmlFor="pay-arrival" className="flex items-center gap-3 cursor-pointer">
-                                  <Coins className="h-4 w-4" />
-                                  <span className="text-[10px] font-black uppercase italic">Pay on Arrival</span>
+                      ) : (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                          <div className="p-4 bg-muted/30 rounded-2xl border border-primary/5 space-y-2">
+                            <Label className="text-[10px] font-black uppercase opacity-50">Pickup Location</Label>
+                            <p className="text-xs font-bold uppercase italic">{config?.shippingSettings.pickupLocation}</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase">Payment Timing</Label>
+                            <RadioGroup value={paymentMethod} onValueChange={(val: any) => setPaymentMethod(val)} className="space-y-2">
+                              <div className={cn("flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer", paymentMethod === 'etransfer' ? "border-primary bg-primary/5" : "border-muted")}>
+                                <Label htmlFor="pay-now" className="flex items-center gap-3 cursor-pointer">
+                                  <CreditCard className="h-4 w-4" />
+                                  <span className="text-[10px] font-black uppercase italic">Pay Now (E-Transfer)</span>
                                 </Label>
-                                <RadioGroupItem value="on_arrival" id="pay-arrival" />
+                                <RadioGroupItem value="etransfer" id="pay-now" />
                               </div>
-                            )}
-                          </RadioGroup>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex gap-3">
-                      <Button variant="outline" onClick={() => setCheckoutStep('cart')} className="h-14 flex-1 rounded-2xl font-black uppercase italic">Back</Button>
-                      <Button onClick={() => setCheckoutStep('payment')} className="h-14 flex-[2] rounded-2xl font-black uppercase italic">Review & Pay</Button>
-                    </div>
-                  </div>
-                )}
-
-                {checkoutStep === 'payment' && (
-                  <div className="space-y-6">
-                    <div className="bg-muted/30 p-6 rounded-[2rem] border border-primary/5 space-y-4">
-                      <div className="space-y-2 border-b pb-4">
-                        <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
-                          <span>Subtotal</span>
-                          <span>${subtotalAfterDiscount.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
-                          <span>Shipping</span>
-                          <span>{shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`}</span>
-                        </div>
-                        <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
-                          <span>Tax ({config?.shippingSettings.taxRate}%)</span>
-                          <span>${taxAmount.toFixed(2)}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between font-black uppercase italic">
-                        <span className="text-sm">Total</span>
-                        <span className="text-2xl text-primary">${finalTotal.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    {paymentMethod === 'etransfer' ? (
-                      <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-4 animate-in zoom-in-95">
-                        <p className="text-[10px] font-black uppercase italic text-center text-primary">E-Transfer Protocol</p>
-                        <p className="font-mono font-bold text-primary text-center bg-background p-3 rounded-xl border border-dashed border-primary/20">{config?.etransferEmail}</p>
-                        <p className="text-[9px] text-center text-muted-foreground uppercase font-medium">Please include your name in the transfer notes.</p>
-                      </div>
-                    ) : (
-                      <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-2 text-center animate-in zoom-in-95">
-                        <p className="text-[10px] font-black uppercase italic text-primary">Pay on Arrival</p>
-                        <p className="text-[9px] text-muted-foreground uppercase font-medium">Please have payment ready at the pickup location.</p>
-                      </div>
-                    )}
-
-                    <div className="flex gap-3">
-                      <Button variant="outline" onClick={() => setCheckoutStep('logistics')} className="h-14 flex-1 rounded-2xl font-black uppercase italic">Back</Button>
-                      <Button onClick={finalizeOrder} disabled={isCheckingOut} className="h-14 flex-[2] rounded-2xl font-black uppercase italic">Confirm Order</Button>
-                    </div>
-                  </div>
-                )}
-
-                {checkoutStep === 'success' && placedOrder && (
-                  <div className="space-y-8 py-4 text-center animate-in zoom-in-95">
-                    <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                      <CheckCircle2 className="h-10 w-10" />
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-2xl font-black uppercase italic tracking-tighter">Order Secured</h3>
-                      <p className="text-xs text-muted-foreground font-medium uppercase">Order ID: <span className="text-foreground font-black">{placedOrder.id}</span></p>
-                    </div>
-
-                    {placedOrder.paymentMethod === 'etransfer' && (
-                      <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-6 text-left">
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-black uppercase italic text-primary">1. Send E-Transfer To</p>
-                          <div className="flex items-center justify-between bg-background p-3 rounded-xl border border-dashed border-primary/20">
-                            <span className="font-mono font-bold text-xs text-primary">{config?.etransferEmail}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(config?.etransferEmail || "")}><Copy className="h-3 w-3" /></Button>
+                              {config?.shippingSettings.allowPayOnArrival && (
+                                <div className={cn("flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer", paymentMethod === 'on_arrival' ? "border-primary bg-primary/5" : "border-muted")}>
+                                  <Label htmlFor="pay-arrival" className="flex items-center gap-3 cursor-pointer">
+                                    <Coins className="h-4 w-4" />
+                                    <span className="text-[10px] font-black uppercase italic">Pay on Arrival</span>
+                                  </Label>
+                                  <RadioGroupItem value="on_arrival" id="pay-arrival" />
+                                </div>
+                              )}
+                            </RadioGroup>
                           </div>
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-black uppercase italic text-primary">2. Include in Message</p>
-                          <div className="flex items-center justify-between bg-background p-3 rounded-xl border border-dashed border-primary/20">
-                            <span className="font-mono font-bold text-xs text-primary">{placedOrder.id} - {placedOrder.customerName}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(`${placedOrder.id} - ${placedOrder.customerName}`)}><Copy className="h-3 w-3" /></Button>
+                      )}
+
+                      <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setCheckoutStep('cart')} className="h-14 flex-1 rounded-2xl font-black uppercase italic">Back</Button>
+                        <Button onClick={() => setCheckoutStep('payment')} className="h-14 flex-[2] rounded-2xl font-black uppercase italic">Review & Pay</Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {checkoutStep === 'payment' && (
+                    <div className="space-y-6">
+                      <div className="bg-muted/30 p-6 rounded-[2rem] border border-primary/5 space-y-4">
+                        <div className="space-y-2 border-b pb-4">
+                          <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
+                            <span>Subtotal</span>
+                            <span>${subtotalAfterDiscount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
+                            <span>Shipping</span>
+                            <span>{shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`}</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
+                            <span>Tax ({config?.shippingSettings.taxRate}%)</span>
+                            <span>${taxAmount.toFixed(2)}</span>
                           </div>
                         </div>
-                        <p className="text-[9px] text-center text-muted-foreground uppercase font-medium">Your order will be processed once payment is verified.</p>
+                        <div className="flex justify-between font-black uppercase italic">
+                          <span className="text-sm">Total</span>
+                          <span className="text-2xl text-primary">${finalTotal.toFixed(2)}</span>
+                        </div>
                       </div>
-                    )}
 
-                    {placedOrder.shippingMethod === 'pickup' && placedOrder.paymentMethod === 'on_arrival' && (
-                      <div className="bg-muted/30 p-6 rounded-[2rem] border border-primary/5 space-y-2">
-                        <p className="text-[10px] font-black uppercase italic opacity-50">Pickup Location</p>
-                        <p className="text-xs font-bold uppercase italic">{config?.shippingSettings.pickupLocation}</p>
-                        <p className="text-[9px] text-muted-foreground uppercase font-medium pt-2">Please have payment ready upon arrival.</p>
+                      {paymentMethod === 'etransfer' ? (
+                        <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-4 animate-in zoom-in-95">
+                          <p className="text-[10px] font-black uppercase italic text-center text-primary">E-Transfer Protocol</p>
+                          <p className="font-mono font-bold text-primary text-center bg-background p-3 rounded-xl border border-dashed border-primary/20">{config?.etransferEmail}</p>
+                          <p className="text-[9px] text-center text-muted-foreground uppercase font-medium">Please include your name in the transfer notes.</p>
+                        </div>
+                      ) : (
+                        <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-2 text-center animate-in zoom-in-95">
+                          <p className="text-[10px] font-black uppercase italic text-primary">Pay on Arrival</p>
+                          <p className="text-[9px] text-muted-foreground uppercase font-medium">Please have payment ready at the pickup location.</p>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setCheckoutStep('logistics')} className="h-14 flex-1 rounded-2xl font-black uppercase italic">Back</Button>
+                        <Button onClick={finalizeOrder} disabled={isCheckingOut} className="h-14 flex-[2] rounded-2xl font-black uppercase italic">Confirm Order</Button>
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    <Button onClick={() => navigate("/account")} className="w-full h-14 rounded-2xl font-black uppercase italic">View Order Status</Button>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
+                  {checkoutStep === 'success' && placedOrder && (
+                    <div className="space-y-8 py-4 text-center animate-in zoom-in-95">
+                      <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                        <CheckCircle2 className="h-10 w-10" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter">Order Secured</h3>
+                        <p className="text-xs text-muted-foreground font-medium uppercase">Order ID: <span className="text-foreground font-black">{placedOrder.id}</span></p>
+                      </div>
+
+                      {placedOrder.paymentMethod === 'etransfer' && (
+                        <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 space-y-6 text-left">
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase italic text-primary">1. Send E-Transfer To</p>
+                            <div className="flex items-center justify-between bg-background p-3 rounded-xl border border-dashed border-primary/20">
+                              <span className="font-mono font-bold text-xs text-primary">{config?.etransferEmail}</span>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(config?.etransferEmail || "")}><Copy className="h-3 w-3" /></Button>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase italic text-primary">2. Include in Message</p>
+                            <div className="flex items-center justify-between bg-background p-3 rounded-xl border border-dashed border-primary/20">
+                              <span className="font-mono font-bold text-xs text-primary">{placedOrder.id} - {placedOrder.customerName}</span>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(`${placedOrder.id} - ${placedOrder.customerName}`)}><Copy className="h-3 w-3" /></Button>
+                            </div>
+                          </div>
+                          <p className="text-[9px] text-center text-muted-foreground uppercase font-medium">Your order will be processed once payment is verified.</p>
+                        </div>
+                      )}
+
+                      {placedOrder.shippingMethod === 'pickup' && placedOrder.paymentMethod === 'on_arrival' && (
+                        <div className="bg-muted/30 p-6 rounded-[2rem] border border-primary/5 space-y-2">
+                          <p className="text-[10px] font-black uppercase italic opacity-50">Pickup Location</p>
+                          <p className="text-xs font-bold uppercase italic">{config?.shippingSettings.pickupLocation}</p>
+                          <p className="text-[9px] text-muted-foreground uppercase font-medium pt-2">Please have payment ready upon arrival.</p>
+                        </div>
+                      )}
+
+                      <Button onClick={() => navigate("/account")} className="w-full h-14 rounded-2xl font-black uppercase italic">View Order Status</Button>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+            )}
 
             {currentUser ? (
               <Link to="/account">
@@ -458,7 +496,7 @@ export default function Index() {
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                     <User className="h-3 w-3" />
                   </div>
-                  {currentUser.name?.split(' ')[0]}
+                  <span className="hidden sm:inline">{currentUser.name?.split(' ')[0]}</span>
                 </Button>
               </Link>
             ) : (
@@ -466,6 +504,37 @@ export default function Index() {
                 <Button variant="ghost" size="icon" className="hover:bg-primary/5 rounded-full h-11 w-11"><User className="h-5 w-5" /></Button>
               </Link>
             )}
+
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden hover:bg-primary/5 rounded-full h-11 w-11">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:max-w-xs bg-background border-l-primary/20">
+                <SheetHeader className="text-left">
+                  <SheetTitle className="text-2xl font-black uppercase italic tracking-tighter text-primary">Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-6 mt-12">
+                  {navLinks.map((link) => (
+                    <button 
+                      key={link.id} 
+                      onClick={() => scrollToSection(link.id)} 
+                      className="text-2xl font-black uppercase italic tracking-tighter text-left hover:text-primary transition-colors"
+                    >
+                      {link.label}
+                    </button>
+                  ))}
+                  <div className="pt-8 border-t space-y-6">
+                    <div className="flex gap-4">
+                      {config?.socialLinks.instagram && <a href={config.socialLinks.instagram} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Instagram className="h-5 w-5" /></a>}
+                      {config?.socialLinks.twitter && <a href={config.socialLinks.twitter} className="p-3 bg-muted/30 rounded-2xl border hover:text-primary transition-all"><Twitter className="h-5 w-5" /></a>}
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{config?.brandTagline}</p>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </nav>
@@ -482,28 +551,37 @@ export default function Index() {
             <div className="col-span-1 md:col-span-2 space-y-6">
               <h3 className="text-2xl font-black tracking-tighter text-primary italic uppercase">{config?.brandName}</h3>
               <p className="text-muted-foreground max-w-sm text-sm font-medium leading-relaxed">{config?.brandTagline}</p>
-              <div className="flex gap-4">
-                {config?.socialLinks.instagram && <a href={config.socialLinks.instagram} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Instagram className="h-5 w-5" /></a>}
-                {config?.socialLinks.twitter && <a href={config.socialLinks.twitter} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Twitter className="h-5 w-5" /></a>}
-                {config?.socialLinks.discord && <a href={config.socialLinks.discord} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Github className="h-5 w-5" /></a>}
-              </div>
+              {config?.footerSettings.showSocials && (
+                <div className="flex gap-4">
+                  {config?.socialLinks.instagram && <a href={config.socialLinks.instagram} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Instagram className="h-5 w-5" /></a>}
+                  {config?.socialLinks.twitter && <a href={config.socialLinks.twitter} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Twitter className="h-5 w-5" /></a>}
+                  {config?.socialLinks.discord && <a href={config.socialLinks.discord} className="p-3 bg-background rounded-2xl border hover:text-primary transition-all"><Github className="h-5 w-5" /></a>}
+                </div>
+              )}
             </div>
             <div>
               <h4 className="font-black uppercase italic mb-6 tracking-tighter text-xs">Navigation</h4>
               <ul className="space-y-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 <li><button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-primary">Home</button></li>
-                <li><button onClick={() => scrollToSection('products')} className="hover:text-primary">Catalog</button></li>
+                {navLinks.map(link => (
+                  <li key={link.id}><button onClick={() => scrollToSection(link.id)} className="hover:text-primary">{link.label}</button></li>
+                ))}
                 <li><Link to="/admin" className="hover:text-primary">Terminal</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-black uppercase italic mb-6 tracking-tighter text-xs">Support</h4>
               <ul className="space-y-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                <li>contact@aether.store</li>
+                <li>{config?.etransferEmail}</li>
                 <li>Privacy Policy</li>
                 <li>Terms of Service</li>
               </ul>
             </div>
+          </div>
+          <div className="mt-24 pt-8 border-t text-center">
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">
+              {config?.footerSettings.footerText}
+            </p>
           </div>
         </div>
       </footer>
@@ -525,7 +603,7 @@ function SectionRenderer({ section, products, addToCart, scrollToSection }: any)
   switch (section.type) {
     case 'hero':
       return (
-        <motion.section initial="hidden" whileInView="visible" viewport={{ once: true }} variants={containerVariants} className="relative py-24 lg:py-40 overflow-hidden">
+        <motion.section id={section.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={containerVariants} className="relative py-24 lg:py-40 overflow-hidden">
           <div className="container mx-auto px-4">
             <div className="grid lg:grid-cols-2 gap-20 items-center">
               <div className="space-y-8">
@@ -545,7 +623,7 @@ function SectionRenderer({ section, products, addToCart, scrollToSection }: any)
       );
     case 'products':
       return (
-        <section id="products" className="py-24 bg-muted/10">
+        <section id={section.id} className="py-24 bg-muted/10">
           <div className="container mx-auto px-4">
             <div className="mb-16 space-y-2">
               <h2 className="text-4xl font-black tracking-tighter uppercase italic">{section.title}</h2>
@@ -573,7 +651,7 @@ function SectionRenderer({ section, products, addToCart, scrollToSection }: any)
       );
     case 'faq':
       return (
-        <section id="faq" className="py-24">
+        <section id={section.id} className="py-24">
           <div className="container mx-auto px-4 max-w-3xl">
             <div className="text-center mb-16 space-y-2">
               <h2 className="text-4xl font-black tracking-tighter uppercase italic">{section.title}</h2>
@@ -592,7 +670,7 @@ function SectionRenderer({ section, products, addToCart, scrollToSection }: any)
       );
     case 'newsletter':
       return (
-        <section className="py-24">
+        <section id={section.id} className="py-24">
           <div className="container mx-auto px-4">
             <div className="bg-primary rounded-[3rem] p-12 lg:p-24 text-primary-foreground text-center space-y-8 relative overflow-hidden">
               <h2 className="text-5xl lg:text-7xl font-black tracking-tighter uppercase italic z-10 relative">{section.title}</h2>

@@ -13,6 +13,17 @@ export let storefrontConfig: StorefrontConfig = {
   textColor: "240 10% 3.9%",
   announcementText: "SYSTEM UPDATE: NEW INVENTORY DETECTED.",
   etransferEmail: "payments@aether.store",
+  maintenanceMode: false,
+  headerSettings: {
+    showSearch: true,
+    showCart: true,
+    showLoyalty: true,
+    sticky: true
+  },
+  footerSettings: {
+    footerText: "© 2024 AETHER SYSTEMS. ALL RIGHTS RESERVED.",
+    showSocials: true
+  },
   socialLinks: {
     instagram: "https://instagram.com",
     twitter: "https://twitter.com",

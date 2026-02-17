@@ -96,6 +96,18 @@ export interface SocialLinks {
   discord?: string;
 }
 
+export interface HeaderSettings {
+  showSearch: boolean;
+  showCart: boolean;
+  showLoyalty: boolean;
+  sticky: boolean;
+}
+
+export interface FooterSettings {
+  footerText: string;
+  showSocials: boolean;
+}
+
 export interface StorefrontConfig {
   brandName: string;
   brandTagline: string;
@@ -104,6 +116,9 @@ export interface StorefrontConfig {
   textColor: string;
   announcementText?: string;
   etransferEmail?: string;
+  maintenanceMode: boolean;
+  headerSettings: HeaderSettings;
+  footerSettings: FooterSettings;
   socialLinks: SocialLinks;
   loyaltySettings: LoyaltySettings;
   shippingSettings: ShippingSettings;

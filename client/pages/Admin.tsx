@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -480,6 +480,24 @@ export default function Admin() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-4 space-y-6">
                 <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+                  <CardHeader><CardTitle className="text-xs font-black uppercase tracking-widest">System Status</CardTitle></CardHeader>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between p-4 bg-destructive/5 rounded-2xl border border-destructive/10">
+                      <div className="space-y-0.5">
+                        <Label className="text-xs font-black uppercase italic flex items-center gap-2">
+                          <ShieldAlert className="h-3 w-3" /> Maintenance Mode
+                        </Label>
+                        <p className="text-[10px] text-muted-foreground">Take the store offline.</p>
+                      </div>
+                      <Switch 
+                        checked={configForm?.maintenanceMode} 
+                        onCheckedChange={(val) => setConfigForm(prev => prev ? {...prev, maintenanceMode: val} : null)}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
                   <CardHeader><CardTitle className="text-xs font-black uppercase tracking-widest">Page Layout</CardTitle></CardHeader>
                   <CardContent className="p-2 space-y-1">
                     {configForm?.sections.map((s, i) => (
@@ -548,6 +566,55 @@ export default function Admin() {
                     <p className="font-black uppercase italic tracking-tighter">Select a section to edit</p>
                   </div>
                 )}
+
+                {/* Header & Footer Settings */}
+                <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+                  <CardHeader>
+                    <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                      <LayoutDashboard className="h-4 w-4" /> Header & Footer
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
+                        <Label className="text-[10px] font-black uppercase italic">Show Search</Label>
+                        <Switch 
+                          checked={configForm?.headerSettings.showSearch} 
+                          onCheckedChange={(val) => setConfigForm(prev => prev ? {...prev, headerSettings: {...prev.headerSettings, showSearch: val}} : null)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
+                        <Label className="text-[10px] font-black uppercase italic">Show Cart</Label>
+                        <Switch 
+                          checked={configForm?.headerSettings.showCart} 
+                          onCheckedChange={(val) => setConfigForm(prev => prev ? {...prev, headerSettings: {...prev.headerSettings, showCart: val}} : null)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
+                        <Label className="text-[10px] font-black uppercase italic">Show Loyalty</Label>
+                        <Switch 
+                          checked={configForm?.headerSettings.showLoyalty} 
+                          onCheckedChange={(val) => setConfigForm(prev => prev ? {...prev, headerSettings: {...prev.headerSettings, showLoyalty: val}} : null)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
+                        <Label className="text-[10px] font-black uppercase italic">Sticky Header</Label>
+                        <Switch 
+                          checked={configForm?.headerSettings.sticky} 
+                          onCheckedChange={(val) => setConfigForm(prev => prev ? {...prev, headerSettings: {...prev.headerSettings, sticky: val}} : null)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase">Footer Text</Label>
+                      <Input 
+                        value={configForm?.footerSettings.footerText} 
+                        onChange={e => setConfigForm(prev => prev ? {...prev, footerSettings: {...prev.footerSettings, footerText: e.target.value}} : null)}
+                        className="h-12 bg-muted/30 font-bold"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {/* Shipping & Taxes Settings */}
                 <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
