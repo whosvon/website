@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown, Truck, MapPin, CreditCard, Phone, CheckCircle2, Copy, Settings } from "lucide-react";
+import { ShoppingCart, User, Menu, X, ArrowRight, Star, LogOut, Trash2, Mail, Info, Coins, Search, Instagram, Twitter, Facebook, Github, ChevronDown, Truck, MapPin, CreditCard, Phone, CheckCircle2, Copy, Settings, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -111,6 +111,14 @@ export default function Index() {
   const taxRate = (config?.shippingSettings.taxRate || 0) / 100;
   const taxAmount = subtotalAfterDiscount * taxRate;
   const finalTotal = subtotalAfterDiscount + shippingFee + taxAmount;
+
+  const handleApplyMaxPoints = () => {
+    if (!currentUser || !config) return;
+    const maxPointsPossible = Math.floor(cartSubtotal * config.loyaltySettings.pointsToDollarRate);
+    const pointsToApply = Math.min(currentUser.loyaltyPoints, maxPointsPossible);
+    setPointsToUse(pointsToApply);
+    toast.success(`Applied ${pointsToApply} points for $${(pointsToApply / config.loyaltySettings.pointsToDollarRate).toFixed(2)} off!`);
+  };
 
   const finalizeOrder = async () => {
     if (shippingMethod === 'delivery' && (!customerDetails.address || !customerDetails.phone)) {
@@ -288,21 +296,39 @@ export default function Index() {
                       </div>
 
                       {config?.loyaltySettings.enabled && currentUser && currentUser.loyaltyPoints > 0 && cart.length > 0 && (
-                        <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3">
+                        <div className="bg-primary/5 p-5 rounded-[2rem] border border-primary/10 space-y-4">
                           <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2 text-primary">
-                              <Coins className="h-4 w-4" />
-                              <span className="text-[10px] font-black uppercase italic">Redeem Points</span>
+                              <Sparkles className="h-4 w-4" />
+                              <span className="text-[10px] font-black uppercase italic">Loyalty Rewards</span>
                             </div>
-                            <span className="text-[10px] font-bold text-muted-foreground">{currentUser.loyaltyPoints} Available</span>
+                            <Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 text-primary">{currentUser.loyaltyPoints} PTS</Badge>
                           </div>
-                          <Slider 
-                            value={[pointsToUse]} 
-                            max={Math.min(currentUser.loyaltyPoints, cartSubtotal * config.loyaltySettings.pointsToDollarRate)} 
-                            step={config.loyaltySettings.pointsToDollarRate}
-                            onValueChange={(val) => setPointsToUse(val[0])}
-                          />
-                          <p className="text-[9px] text-center font-bold text-muted-foreground uppercase">Using {pointsToUse} points for ${discountAmount.toFixed(2)} off</p>
+                          
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase">Redeem for discount</p>
+                              <Button 
+                                variant="link" 
+                                size="sm" 
+                                onClick={handleApplyMaxPoints}
+                                className="h-auto p-0 text-[10px] font-black uppercase italic text-primary hover:no-underline"
+                              >
+                                Use Max Points
+                              </Button>
+                            </div>
+                            <Slider 
+                              value={[pointsToUse]} 
+                              max={Math.min(currentUser.loyaltyPoints, Math.floor(cartSubtotal * config.loyaltySettings.pointsToDollarRate))} 
+                              step={config.loyaltySettings.pointsToDollarRate}
+                              onValueChange={(val) => setPointsToUse(val[0])}
+                              className="py-2"
+                            />
+                            <div className="flex justify-between items-center bg-background/50 p-2 rounded-xl border border-dashed border-primary/10">
+                              <span className="text-[9px] font-black uppercase italic text-muted-foreground">Discount Applied</span>
+                              <span className="text-xs font-black text-primary italic">-${discountAmount.toFixed(2)}</span>
+                            </div>
+                          </div>
                         </div>
                       )}
 
@@ -408,8 +434,14 @@ export default function Index() {
                         <div className="space-y-2 border-b pb-4">
                           <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
                             <span>Subtotal</span>
-                            <span>${subtotalAfterDiscount.toFixed(2)}</span>
+                            <span>${cartSubtotal.toFixed(2)}</span>
                           </div>
+                          {discountAmount > 0 && (
+                            <div className="flex justify-between text-[10px] font-black uppercase italic text-primary">
+                              <span>Points Discount</span>
+                              <span>-${discountAmount.toFixed(2)}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between text-[10px] font-black uppercase italic text-muted-foreground">
                             <span>Shipping</span>
                             <span>{shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`}</span>
