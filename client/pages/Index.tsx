@@ -200,11 +200,19 @@ export default function Index() {
     );
   }
 
-  const navLinks = config?.sections.filter(s => s.visible && s.title).map(s => ({
-    id: s.id,
-    label: s.title?.split(' ')[0] || s.type,
-    type: s.type
-  })) || [];
+  const navLinks = config?.sections.filter(s => s.visible).map(s => {
+    let label = s.title?.split(' ')[0] || s.type;
+    if (s.type === 'hero') label = "Home";
+    else if (s.type === 'products') label = "Store";
+    else if (s.type === 'faq') label = "Support";
+    else if (s.type === 'newsletter') label = "Join";
+    
+    return {
+      id: s.id,
+      label: label,
+      type: s.type
+    };
+  }).filter(l => ['Home', 'Store', 'Support', 'Join'].includes(l.label)) || [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -643,7 +651,7 @@ function SectionRenderer({ section, products, addToCart, scrollToSection }: any)
                 <h1 className="text-6xl lg:text-8xl font-black tracking-tighter leading-[0.85] uppercase italic">{section.title}</h1>
                 <p className="text-lg text-muted-foreground max-w-lg font-medium">{section.subtitle}</p>
                 <div className="flex gap-4 pt-4">
-                  <Button onClick={() => scrollToSection('products')} size="lg" className="h-16 px-10 text-lg font-black uppercase italic rounded-2xl shadow-2xl shadow-primary/20">Shop Now</Button>
+                  <Button onClick={() => scrollToSection('products-1')} size="lg" className="h-16 px-10 text-lg font-black uppercase italic rounded-2xl shadow-2xl shadow-primary/20">Shop Now</Button>
                 </div>
               </div>
               <motion.div whileHover={{ scale: 1.02, rotate: -1 }} className="relative aspect-square rounded-[3rem] overflow-hidden border-8 border-background shadow-2xl">
