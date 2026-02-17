@@ -641,6 +641,24 @@ export default function Admin() {
                 </Card>
               </div>
               <div className="lg:col-span-8 space-y-6">
+                <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+                  <CardHeader><CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2"><Megaphone className="h-4 w-4" /> System Broadcast</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase">Active Announcement</Label>
+                      <Input 
+                        value={configForm?.announcementText || ""} 
+                        onChange={e => setConfigForm(prev => prev ? {...prev, announcementText: e.target.value} : null)} 
+                        placeholder="Enter broadcast message..."
+                        className="h-12 bg-muted/30 font-bold uppercase italic" 
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground uppercase font-medium">
+                      This message appears at the very top of the storefront for all users.
+                    </p>
+                  </CardContent>
+                </Card>
+
                 {activeEditorSection ? (
                   <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
                     <CardHeader className="flex flex-row justify-between items-center">
