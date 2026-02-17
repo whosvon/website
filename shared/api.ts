@@ -76,7 +76,6 @@ export interface StorefrontSection {
   subtitle?: string;
   content?: string;
   image?: string;
-  items?: any[];
   visible: boolean;
 }
 
@@ -113,12 +112,21 @@ export interface FooterSettings {
   showSocials: boolean;
 }
 
+export interface ThemePreset {
+  id: string;
+  name: string;
+  primary: string;
+  background: string;
+  foreground: string;
+}
+
 export interface StorefrontConfig {
   brandName: string;
   brandTagline: string;
   accentColor: string;
   backgroundColor: string;
   textColor: string;
+  themePresetId?: string;
   announcementText?: string;
   etransferEmail?: string;
   maintenanceMode: boolean;

@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from "react";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Film, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface ImageUploadProps {
   value?: string;
@@ -13,8 +14,16 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFile = (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file.");
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type === "video/mp4";
+
+    if (!isImage && !isVideo) {
+      toast.error("Please upload an image (JPG, PNG, GIF) or MP4 video.");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be under 10MB.");
       return;
     }
 
@@ -48,6 +57,8 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
     if (file) handleFile(file);
   };
 
+  const isVideo = value?.startsWith("data:video/mp4") || value?.endsWith(".mp4");
+
   return (
     <div className={cn("space-y-4 w-full", className)}>
       <div
@@ -64,14 +75,18 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
         <input
           id="file-upload"
           type="file"
-          accept="image/*"
+          accept="image/*,video/mp4"
           className="hidden"
           onChange={onFileChange}
         />
 
         {value ? (
           <div className="relative w-full h-[160px] group">
-            <img src={value} alt="Upload preview" className="w-full h-full object-cover" />
+            {isVideo ? (
+              <video src={value} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+            ) : (
+              <img src={value} alt="Upload preview" className="w-full h-full object-cover" />
+            )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
               <Button
                 type="button"
@@ -95,6 +110,10 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
                 <X className="h-4 w-4" /> Remove
               </Button>
             </div>
+            <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 rounded text-[8px] font-black uppercase text-white flex items-center gap-1">
+              {isVideo ? <Film className="h-2 w-2" /> : <ImageIcon className="h-2 w-2" />}
+              {isVideo ? "Motion" : "Static"}
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3 text-center p-6">
@@ -102,8 +121,8 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
               <Upload className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-bold uppercase tracking-tighter italic">Drop image here</p>
-              <p className="text-xs text-muted-foreground mt-1">or click to browse from device</p>
+              <p className="text-sm font-bold uppercase tracking-tighter italic">Drop media here</p>
+              <p className="text-xs text-muted-foreground mt-1">Supports JPG, PNG, GIF, and MP4</p>
             </div>
           </div>
         )}
@@ -111,5 +130,3 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
     </div>
   );
 }
-
-import { toast } from "sonner";

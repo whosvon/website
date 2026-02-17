@@ -1,8 +1,16 @@
-import { Product, Order, StorefrontConfig, User, ChatMessage } from "@shared/api";
+import { Product, Order, StorefrontConfig, User, ChatMessage, ThemePreset } from "@shared/api";
 
 export const products: Product[] = [];
 export const orders: Order[] = [];
 export const chatMessages: ChatMessage[] = [];
+
+export const themePresets: ThemePreset[] = [
+  { id: 'aether', name: 'Aether (Purple)', primary: '262 83% 58%', background: '0 0% 100%', foreground: '240 10% 3.9%' },
+  { id: 'cyber', name: 'Cyber (Cyan)', primary: '180 100% 50%', background: '224 71% 4%', foreground: '210 20% 98%' },
+  { id: 'stealth', name: 'Stealth (Gray)', primary: '0 0% 20%', background: '0 0% 98%', foreground: '0 0% 10%' },
+  { id: 'crimson', name: 'Crimson (Red)', primary: '0 84% 60%', background: '0 0% 100%', foreground: '0 0% 10%' },
+  { id: 'midnight', name: 'Midnight (Blue)', primary: '221 83% 53%', background: '222 47% 11%', foreground: '210 40% 98%' }
+];
 
 // Initialize with a default master admin
 export const users: User[] = [
@@ -25,6 +33,7 @@ export let storefrontConfig: StorefrontConfig = {
   accentColor: "262 83% 58%",
   backgroundColor: "0 0% 100%",
   textColor: "240 10% 3.9%",
+  themePresetId: 'aether',
   announcementText: "SYSTEM UPDATE: NEW INVENTORY DETECTED.",
   etransferEmail: "payments@aether.store",
   maintenanceMode: false,

@@ -640,6 +640,8 @@ function SectionRenderer({ section, products, addToCart, scrollToSection }: any)
     } 
   };
 
+  const isVideo = section.image?.startsWith("data:video/mp4") || section.image?.endsWith(".mp4");
+
   switch (section.type) {
     case 'hero':
       return (
@@ -655,7 +657,11 @@ function SectionRenderer({ section, products, addToCart, scrollToSection }: any)
                 </div>
               </div>
               <motion.div whileHover={{ scale: 1.02, rotate: -1 }} className="relative aspect-square rounded-[3rem] overflow-hidden border-8 border-background shadow-2xl">
-                <img src={section.image} className="w-full h-full object-cover" />
+                {isVideo ? (
+                  <video src={section.image} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                ) : (
+                  <img src={section.image} className="w-full h-full object-cover" />
+                )}
               </motion.div>
             </div>
           </div>

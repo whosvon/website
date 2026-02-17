@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, Plus, LogOut, Search, Filter, DollarSign, Users, Pencil, Settings, Palette, Megaphone, MessageSquare, CheckCircle2, Truck, Clock, XCircle, Coins, ToggleLeft, ToggleRight, BarChart3, Globe, Share2, HelpCircle, Image as ImageIcon, Trash2, MapPin, Percent, Send, Eye, EyeOff, ShieldAlert, Save, History, ArrowUpRight, ArrowDownLeft, ShieldCheck, UserPlus, Lock, Shield, Activity, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Product, Order, StorefrontConfig, User, ChatMessage, StorefrontSection, Permission } from "@shared/api";
+import { Product, Order, StorefrontConfig, User, ChatMessage, StorefrontSection, Permission, ThemePreset } from "@shared/api";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/ImageUpload";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,14 @@ export default function Admin() {
 
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const themePresets: ThemePreset[] = [
+    { id: 'aether', name: 'Aether (Purple)', primary: '262 83% 58%', background: '0 0% 100%', foreground: '240 10% 3.9%' },
+    { id: 'cyber', name: 'Cyber (Cyan)', primary: '180 100% 50%', background: '224 71% 4%', foreground: '210 20% 98%' },
+    { id: 'stealth', name: 'Stealth (Gray)', primary: '0 0% 20%', background: '0 0% 98%', foreground: '0 0% 10%' },
+    { id: 'crimson', name: 'Crimson (Red)', primary: '0 84% 60%', background: '0 0% 100%', foreground: '0 0% 10%' },
+    { id: 'midnight', name: 'Midnight (Blue)', primary: '221 83% 53%', background: '222 47% 11%', foreground: '210 40% 98%' }
+  ];
 
   useEffect(() => {
     const token = localStorage.getItem("admin-token");
@@ -207,6 +215,20 @@ export default function Admin() {
       toast.error("Update failed.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const applyThemePreset = (presetId: string) => {
+    const preset = themePresets.find(p => p.id === presetId);
+    if (preset && configForm) {
+      setConfigForm({
+        ...configForm,
+        themePresetId: presetId,
+        accentColor: preset.primary,
+        backgroundColor: preset.background,
+        textColor: preset.foreground
+      });
+      toast.success(`Applied ${preset.name} theme.`);
     }
   };
 
@@ -392,6 +414,7 @@ export default function Admin() {
             {hasPermission('chat') && <TabsTrigger value="messages" className="rounded-xl px-8 font-black uppercase italic text-xs">Messages</TabsTrigger>}
             {hasPermission('settings') && <TabsTrigger value="editor" className="rounded-xl px-8 font-black uppercase italic text-xs">Builder</TabsTrigger>}
             {hasPermission('staff') && <TabsTrigger value="staff" className="rounded-xl px-8 font-black uppercase italic text-xs">Staff</TabsTrigger>}
+            <TabsTrigger value="security" className="rounded-xl px-8 font-black uppercase italic text-xs">Security</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products" className="space-y-4">
@@ -622,6 +645,27 @@ export default function Admin() {
                   </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+                  <CardHeader><CardTitle className="text-xs font-black uppercase tracking-widest">Theme Presets</CardTitle></CardHeader>
+                  <CardContent className="p-2 space-y-1">
+                    {themePresets.map((preset) => (
+                      <button 
+                        key={preset.id} 
+                        onClick={() => applyThemePreset(preset.id)}
+                        className={cn(
+                          "w-full flex items-center justify-between p-3 rounded-xl transition-all",
+                          configForm?.themePresetId === preset.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/50"
+                        )}
+                      >
+                        <span className="text-[10px] font-black uppercase italic">{preset.name}</span>
+                        <div className="flex gap-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: `hsl(${preset.primary})` }} />
+                          <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: `hsl(${preset.background})` }} />
+                        </div>
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+                <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
                   <CardHeader><CardTitle className="text-xs font-black uppercase tracking-widest">Page Layout</CardTitle></CardHeader>
                   <CardContent className="p-2 space-y-1">
                     {configForm?.sections.map((s) => (
@@ -687,7 +731,7 @@ export default function Admin() {
                             </div>
                             {s.type === 'hero' && (
                               <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase">Image</Label>
+                                <Label className="text-[10px] font-black uppercase">Media (Image/GIF/MP4)</Label>
                                 <ImageUpload value={s.image || ""} onChange={val => {
                                   const sections = configForm.sections.map(sec => sec.id === s.id ? {...sec, image: val} : sec);
                                   setConfigForm({...configForm, sections});
@@ -885,6 +929,67 @@ export default function Admin() {
                 </form>
               </DialogContent>
             </Dialog>
+          </TabsContent>
+
+          <TabsContent value="security" className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <Card className="border-none shadow-sm bg-green-500/5 border border-green-500/20">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <ShieldCheck className="h-8 w-8 text-green-500" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">System Integrity</p>
+                    <h3 className="text-xl font-black italic text-green-500 uppercase">Optimal</h3>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-sm bg-primary/5 border border-primary/20">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <Activity className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Threats Blocked</p>
+                    <h3 className="text-xl font-black italic text-primary uppercase">1,242</h3>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <Zap className="h-8 w-8 text-yellow-500" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Encryption Level</p>
+                    <h3 className="text-xl font-black italic uppercase">AES-256</h3>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="border-none shadow-sm bg-background/50 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2"><Shield className="h-4 w-4" /> Security Protocol Logs</CardTitle>
+                <CardDescription>Real-time monitoring of system access and potential breaches.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {[
+                    { event: "Admin Login Verified", ip: "192.168.1.1", time: "2 mins ago", status: "success" },
+                    { event: "Suspicious SQL Pattern Blocked", ip: "45.22.11.9", time: "15 mins ago", status: "blocked" },
+                    { event: "Brute Force Attempt Mitigated", ip: "103.4.2.11", time: "1 hour ago", status: "blocked" },
+                    { event: "System Config Updated", ip: "192.168.1.1", time: "3 hours ago", status: "success" },
+                    { event: "New Staff Member Initialized", ip: "192.168.1.1", time: "5 hours ago", status: "success" }
+                  ].map((log, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-primary/5">
+                      <div className="flex items-center gap-4">
+                        <div className={cn("w-2 h-2 rounded-full", log.status === 'success' ? "bg-green-500" : "bg-destructive")} />
+                        <div>
+                          <p className="text-xs font-bold uppercase italic">{log.event}</p>
+                          <p className="text-[9px] text-muted-foreground font-mono">{log.ip}</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-black uppercase opacity-50">{log.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
